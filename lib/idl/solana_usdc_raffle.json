@@ -1,0 +1,699 @@
+{
+  "version": "0.1.0",
+  "name": "solana_usdc_raffle",
+  "instructions": [
+    {
+      "name": "createRaffle",
+      "accounts": [
+        {
+          "name": "admin",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolNativeAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "payTokenMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "raffleId",
+          "type": "u32"
+        },
+        {
+          "name": "reserved",
+          "type": "f32"
+        },
+        {
+          "name": "price",
+          "type": "u32"
+        },
+        {
+          "name": "prize",
+          "type": "u32"
+        },
+        {
+          "name": "autoGenerate",
+          "type": "u8"
+        },
+        {
+          "name": "multiplier",
+          "type": "f32"
+        },
+        {
+          "name": "accountFee",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "changePoolAutoGenerate",
+      "accounts": [
+        {
+          "name": "admin",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "autoGenerate",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "buyTickets",
+      "accounts": [
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolNativeAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "payTokenMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "buyer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "userInfo",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "referral",
+          "isMut": true,
+          "isSigner": false,
+          "isOptional": true
+        },
+        {
+          "name": "buyerAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "adminAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "referralAta",
+          "isMut": true,
+          "isSigner": false,
+          "isOptional": true
+        },
+        {
+          "name": "treasury",
+          "isMut": true,
+          "isSigner": false,
+          "isOptional": true
+        },
+        {
+          "name": "random",
+          "isMut": true,
+          "isSigner": false,
+          "isOptional": true
+        },
+        {
+          "name": "config",
+          "isMut": true,
+          "isSigner": false,
+          "isOptional": true
+        },
+        {
+          "name": "vrf",
+          "isMut": false,
+          "isSigner": false,
+          "isOptional": true
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "force",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "raffleId",
+          "type": "u32"
+        },
+        {
+          "name": "buyerIndex",
+          "type": "u32"
+        },
+        {
+          "name": "totalTicket",
+          "type": "u32"
+        },
+        {
+          "name": "totalPrice",
+          "type": "u64"
+        },
+        {
+          "name": "accountFeeSol",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "completeRaffle",
+      "accounts": [
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "payTokenMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "admin",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "winner",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "winnerAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "adminAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "treasuryAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "setWinner",
+      "accounts": [
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "winner",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "winnerInfo",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "random",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "force",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "raffleId",
+          "type": "u32"
+        },
+        {
+          "name": "winnerIndex",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "claimPrize",
+      "accounts": [
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolNativeAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "payTokenMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "userInfo",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "admin",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "winner",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "winnerAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "adminAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "raffleId",
+          "type": "u32"
+        },
+        {
+          "name": "buyerIndex",
+          "type": "u32"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "UserInfo",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "raffleId",
+            "type": "u32"
+          },
+          {
+            "name": "userIndex",
+            "type": "u32"
+          },
+          {
+            "name": "buyer",
+            "type": "publicKey"
+          },
+          {
+            "name": "purchasedTicket",
+            "type": "u32"
+          },
+          {
+            "name": "fromIndex",
+            "type": "u32"
+          },
+          {
+            "name": "toIndex",
+            "type": "u32"
+          },
+          {
+            "name": "startTime",
+            "type": "u32"
+          },
+          {
+            "name": "winnerTime",
+            "type": "u32"
+          },
+          {
+            "name": "winAmount",
+            "type": "u32"
+          },
+          {
+            "name": "claimed",
+            "type": "bool"
+          },
+          {
+            "name": "winnerTicketNumber",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Pool",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "raffleId",
+            "type": "u32"
+          },
+          {
+            "name": "startTime",
+            "type": "u32"
+          },
+          {
+            "name": "ticketPrice",
+            "type": "u32"
+          },
+          {
+            "name": "prize",
+            "type": "u32"
+          },
+          {
+            "name": "nativeAccount",
+            "type": "publicKey"
+          },
+          {
+            "name": "winnerTicketNumber",
+            "type": "u32"
+          },
+          {
+            "name": "winner",
+            "type": "publicKey"
+          },
+          {
+            "name": "winnerIndex",
+            "type": "u32"
+          },
+          {
+            "name": "newRandomAddress",
+            "type": "publicKey"
+          },
+          {
+            "name": "lastBuyer",
+            "type": "publicKey"
+          },
+          {
+            "name": "reserved",
+            "type": "f32"
+          },
+          {
+            "name": "totalBuyers",
+            "type": "u32"
+          },
+          {
+            "name": "totalTicket",
+            "type": "u32"
+          },
+          {
+            "name": "purchasedTicket",
+            "type": "u32"
+          },
+          {
+            "name": "autoGenerate",
+            "type": "u8"
+          },
+          {
+            "name": "multiplier",
+            "type": "f32"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": "RaffleStatus"
+            }
+          },
+          {
+            "name": "accountFee",
+            "type": "u32"
+          }
+        ]
+      }
+    }
+  ],
+  "types": [
+    {
+      "name": "RaffleStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Processing"
+          },
+          {
+            "name": "Completed"
+          }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidAmount",
+      "msg": "Amount should be bigger than 0"
+    },
+    {
+      "code": 6001,
+      "name": "NotFinishRaffle",
+      "msg": "Raffle isn't finished"
+    },
+    {
+      "code": 6002,
+      "name": "NoVRFRequest",
+      "msg": "No VRF request yet!"
+    },
+    {
+      "code": 6003,
+      "name": "AlreadyFinished",
+      "msg": "Raffle was already finished"
+    },
+    {
+      "code": 6004,
+      "name": "OverMaxCount",
+      "msg": "Over max count"
+    },
+    {
+      "code": 6005,
+      "name": "OutOfRaffle",
+      "msg": "Raffle had finished or not exist"
+    },
+    {
+      "code": 6006,
+      "name": "AlreadySetWinner",
+      "msg": "Alreay set winner"
+    },
+    {
+      "code": 6007,
+      "name": "SetWinnerError",
+      "msg": "Error in set winner"
+    },
+    {
+      "code": 6008,
+      "name": "StartedRaffle",
+      "msg": "Raffle already started"
+    },
+    {
+      "code": 6009,
+      "name": "TooManyTicket",
+      "msg": "Too many ticket"
+    },
+    {
+      "code": 6010,
+      "name": "NotWinner",
+      "msg": "Not winner"
+    },
+    {
+      "code": 6011,
+      "name": "ClaimPrizeError",
+      "msg": "Error in claim prize, Already claimed"
+    },
+    {
+      "code": 6012,
+      "name": "PayTokenMintAddressError",
+      "msg": "Paytoken mint address is wrong!"
+    },
+    {
+      "code": 6013,
+      "name": "ReferralError",
+      "msg": "Referal should not be buyer!"
+    },
+    {
+      "code": 6014,
+      "name": "ReferralAtaError",
+      "msg": "Referal associated token account not provided!"
+    },
+    {
+      "code": 6015,
+      "name": "InvalidAdmin",
+      "msg": "Invalid Admin provided!"
+    },
+    {
+      "code": 6016,
+      "name": "InvalidAccountFeeAmount",
+      "msg": "Invalid Account fee Sol Amount!"
+    },
+    {
+      "code": 6017,
+      "name": "StillProcessing",
+      "msg": "Still processing VRF!"
+    },
+    {
+      "code": 6018,
+      "name": "UninitializedAccount",
+      "msg": "Account is not initialized!"
+    },
+    {
+      "code": 6019,
+      "name": "ReceiverAccountNotProvided",
+      "msg": "Receiver Account is not provided"
+    },
+    {
+      "code": 6020,
+      "name": "InvalidRaffleId",
+      "msg": "The raffle Id is not correct!"
+    },
+    {
+      "code": 6021,
+      "name": "InvalidWinner",
+      "msg": "The winner is not correct!"
+    }
+  ],
+  "metadata": {
+    "address": "GRHGmjexpYhsU83j84We5PQPdTpqZVf5pVcfbzmLzVD4"
+  }
+}
