@@ -98,7 +98,7 @@ export const CustomWalletButton = () => {
             <div className="mb-4">
               <span className="font-medium">Connected Address:</span>
               <div className="mt-2 p-2 bg-white bg-opacity-10 rounded-md overflow-hidden overflow-ellipsis break-all">
-                {publicKey.toBase58()}
+                {publicKey && publicKey.toBase58()}
               </div>
             </div>
             <div className="flex justify-between">

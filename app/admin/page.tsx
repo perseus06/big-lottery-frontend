@@ -356,7 +356,7 @@ export default function Page() {
         // Note: JavaScript's Number type is a 64-bit floating point, so we use BigInt for large integers
         const low = BigInt(dataView.getUint32(0, true));
         const high = BigInt(dataView.getUint32(4, true));
-        result = (high << 32n) | low;
+        result = (high << BigInt(32)) | low;
       } else {
         console.log('Randomness request not fulfilled');
       }
