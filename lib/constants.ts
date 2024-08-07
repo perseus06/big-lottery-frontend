@@ -1,8 +1,9 @@
 import { PublicKey } from "@solana/web3.js";
 import { BN } from "@project-serum/anchor";
 
-const PROGRAM_ID = "GRHGmjexpYhsU83j84We5PQPdTpqZVf5pVcfbzmLzVD4"; // mine
+const PROGRAM_ID = "C72EpvLCmoSCfamqrcbqFsYRLQV83MccsTh9291PAw1Z"; // mine
 
+const GLOBAL_STATE_SEED = "global_state";
 const POOL_SEED = "pool"; // mine
 const POOL_NATIVE_SEED = "pool_native";
 
@@ -23,6 +24,7 @@ export {
   RPC_ENDPOINT,
   ADMIN_ADDRESS,
   PROGRAM_ID,
+  GLOBAL_STATE_SEED,
   POOL_SEED,
   POOL_NATIVE_SEED,
   POOL_VAULT_SEED,

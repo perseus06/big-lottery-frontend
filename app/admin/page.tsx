@@ -55,6 +55,7 @@ import {
   DECIMALS,
   USER_INFO_SEED,
   POOL_VAULT_SEED,
+  GLOBAL_STATE_SEED
 } from "@/lib/constants";
 import {
   networkStateAccountAddress,
@@ -78,19 +79,24 @@ import {
 export default function Page() {
   const { connection } = useConnection();
   const wallet = useAnchorWallet();
+  const { sendTransaction } = useWallet();
 
   const [program, setProgram] = useState<Program>();
   const [ticketValue, setTicketValue] = useState<number>(1);
   const [maxTickets, setMaxTickets] = useState(100);
+  const [multiplier, setMultiplier] = useState<number>(1.0);
   const [prizeAmount, setPrizeAmount] = useState<number>(69);
   const [autoRecreate, setAutoRecreate] = useState(true);
   const [currentPool, setCurrentPool] = useState<any>(null);
+  const [pools, setPools] = useState<any[]>([]);
   const [winner, setWinner] = useState<String>("");
+  const [activePoolIndex, setActivePoolIndex] = useState<number>(1);
 
   const [validationErrors, setValidationErrors] = useState({
     "ticketValue":"",
     "maxTickets":"",
-    "prizeAmount":""
+    "prizeAmount":"",
+    "multiPlierValue":""
   });
 
   useEffect(() => {
@@ -107,9 +113,25 @@ export default function Page() {
         const program = new Program(IDL as Idl, PROGRAM_ID);
         setProgram(program);
 
+        const allPoolAccount = await program.account.pool.all();
+
+        console.log("allPoolAccount:", allPoolAccount);
+        setPools(allPoolAccount);
+        
+        const [globalState, globalStateBump] = await PublicKey.findProgramAddress(
+          [
+            Buffer.from(GLOBAL_STATE_SEED)
+          ],
+          program.programId
+        );
+
+        const globalStateData = await program.account.globalState.fetch(globalState);
+        const raffleId = Number(globalStateData.totalRaffles);
+
         const [pool, _] = await PublicKey.findProgramAddress(
           [
-          Buffer.from(POOL_SEED)
+            Buffer.from(POOL_SEED),
+            new BN(raffleId).toArrayLike(Buffer,'le',4)
           ],
           program.programId
         );
@@ -117,6 +139,7 @@ export default function Page() {
         try {
           const poolData = await program.account.pool.fetch(pool);
           setCurrentPool(poolData);
+          console.log(poolData);
           if(Object.keys(poolData.status).toString() == "completed") {
             console.log(poolData);
             const winner = poolData.winner.toString();
@@ -148,7 +171,8 @@ export default function Page() {
     const errors = {
       "ticketValue":"",
       "maxTickets":"",
-      "prizeAmount":""
+      "prizeAmount":"",
+      "multiPlierValue":""
     };
     let errorsCount = 0;
 
@@ -167,12 +191,17 @@ export default function Page() {
       errorsCount += 1;
     }
 
+    if (multiplier < 1) {
+      errors.multiPlierValue = "Prize amount must be greater than 1";
+      errorsCount += 1;
+    }
+
     setValidationErrors(errors);
    
     return errorsCount === 0;
   };
 
-  const handleAutoGenerate = async() => {
+  const handleAutoGenerate = async(raffleId: number) => {
     try {
       if(!wallet) {
         console.log("please connect wallet!");
@@ -186,10 +215,12 @@ export default function Page() {
         provider = new AnchorProvider(connection, wallet, {});
         setProvider(provider);
       }
+      console.log(raffleId);
       const program = new Program(IDL as Idl, PROGRAM_ID);
       const [pool, _] = await PublicKey.findProgramAddress(
         [
-        Buffer.from(POOL_SEED)
+          Buffer.from(POOL_SEED),
+          new BN(raffleId).toArrayLike(Buffer,'le',4)
         ],
         program.programId
       );
@@ -197,6 +228,7 @@ export default function Page() {
       const autoGenerate = Number(poolData.autoGenerate) == 1? 0: 1;
       // please write logic here 
       const signature = await program.rpc.changePoolAutoGenerate(
+        raffleId,
         autoGenerate, {
           accounts: {
             admin: wallet.publicKey,
@@ -205,8 +237,9 @@ export default function Page() {
         }
       );
       console.log("signature->",signature);
-      poolData = await program.account.pool.fetch(pool);
-      setCurrentPool(poolData);
+      const allPoolAccount = await program.account.pool.all();
+      console.log("allPoolAccount:", allPoolAccount);
+      setPools(allPoolAccount);
     } catch (error) { 
       console.log(error);
     }
@@ -229,31 +262,30 @@ export default function Page() {
 
       const program = new Program(IDL as Idl, PROGRAM_ID);
 
-      const [pool, _] = await PublicKey.findProgramAddress(
+      const [globalState, globalStateBump] = await PublicKey.findProgramAddress(
         [
-          Buffer.from(POOL_SEED)
+          Buffer.from(GLOBAL_STATE_SEED)
         ],
         program.programId
       );
 
-      let poolData: any;
-      try {
-        poolData = await program.account.pool.fetch(pool);
-      } catch (error) {
-        poolData = null;
-      }
+      const globalStateData = await program.account.globalState.fetch(globalState);
+      const raffleId = Number(globalStateData.totalRaffles) + 1;
 
-      // Define the parameters for the create_raffle function //
-      // Create a new uuid to use as a new raffle id
-      const raffleId = poolData !== null?Number(poolData.raffleId) + 1 : 1;
+      const [pool, _] = await PublicKey.findProgramAddress(
+        [
+          Buffer.from(POOL_SEED),
+          new BN(raffleId).toArrayLike(Buffer,'le',4)
+        ],
+        program.programId
+      );
 
       // Display the new RaffleId
-      const startTime = Math.floor(Date.now() / 1000); // Current timestamp
       const price = ticketValue; // Number(1); // 1 USDC
       const prize = prizeAmount; //Number(69); // 69 USDC
       const reserved = Number(0.2);
       const autoGenerate = autoRecreate ? Number(1) : Number(0);
-      const multiplier = Number(1.3);
+      const lotteryMultiplier = multiplier;
       const accountFee = 100000000;
 
       const [poolNativeAccount, _poolNativeAccountbump] = await PublicKey.findProgramAddress(
@@ -263,16 +295,15 @@ export default function Page() {
         program.programId
       );
 
-      let poolAddress = pool;
-
-      let poolNativeAddress = poolNativeAccount;
-
       const [poolAta, poolAtaBump] = await PublicKey.findProgramAddress(
         [
-          Buffer.from(POOL_VAULT_SEED)
+          Buffer.from(POOL_VAULT_SEED),
+          new BN(raffleId).toArrayLike(Buffer,'le',4)
         ],
         program.programId
       );
+      console.log("poolAta->", poolAta.toString());
+      console.log("raffleId->",raffleId);
 
       // Call the create_raffle function
       const signature = await program.rpc.createRaffle(
@@ -281,10 +312,11 @@ export default function Page() {
         price,
         prize,
         autoGenerate,
-        multiplier,
+        lotteryMultiplier,
         accountFee, {
           accounts: {
             admin: wallet.publicKey,
+            globalState,
             pool,
             poolNativeAccount,
             payTokenMint: PAYTOKEN_MINT,
@@ -298,8 +330,13 @@ export default function Page() {
 
       console.log("Your transaction signature for creating a new raffle", signature);
 
-      poolData = await program.account.pool.fetch(pool);
+      const poolData = await program.account.pool.fetch(pool);
       setCurrentPool(poolData);
+      console.log("new created poolData:", poolData);
+      const allPoolAccount = await program.account.pool.all();
+
+      console.log("allPoolAccount:", allPoolAccount);
+      setPools(allPoolAccount);
     } catch (error) {
       console.log("Error while creating a new raffle:", error);
     }
@@ -309,7 +346,10 @@ export default function Page() {
     try {
       if(!wallet) {
         console.log("please connect wallet!");
-        return
+        return {
+          "winnerTx": undefined,
+          "winnerIndex": undefined
+        };
       }
 
       let provider: Provider;
@@ -320,14 +360,15 @@ export default function Page() {
         setProvider(provider);
       }
       const program = new Program(IDL as Idl, PROGRAM_ID);
+      const raffleId = Number(currentPool.raffleId);
       const [pool, _] = await PublicKey.findProgramAddress(
         [
-        Buffer.from(POOL_SEED)
+          Buffer.from(POOL_SEED),
+          new BN(raffleId).toArrayLike(Buffer,'le',4)
         ],
         program.programId
       );
       let poolData = await program.account.pool.fetch(pool);
-      const raffleId = Number(poolData.raffleId);
       const vrf = new Orao(provider as any);
 
       const random = randomnessAccountAddress(
@@ -362,7 +403,10 @@ export default function Page() {
       }
 
       if(result == undefined) {
-        return;
+        return {
+          "winnerTx": undefined,
+          "winnerIndex": undefined
+        };
       }
 
       result = result % BigInt(poolData.purchasedTicket);
@@ -392,10 +436,13 @@ export default function Page() {
       }
 
       if(winnerInfo==undefined) {
-        return
+        return {
+          "winnerTx": undefined,
+          "winnerIndex": undefined
+        };
       }
      
-      const tx = await program.rpc.setWinner(
+      const tx = program.instruction.setWinner(
         [...poolData.newRandomAddress.toBuffer()], 
         raffleId, 
         winnerIndex, {
@@ -412,9 +459,13 @@ export default function Page() {
         }
       );
       console.log('Your transaction signature for setting winner:', tx);
-      poolData = await program.account.pool.fetch(pool);
-      setCurrentPool(poolData);
-      setWinner(winnerInfoData.buyer.toString());
+      return {
+        "winnerTx": tx,
+        "winnerIndex": winnerIndex
+      };
+      // poolData = await program.account.pool.fetch(pool);
+      // setCurrentPool(poolData);
+      // setWinner(winnerInfoData.buyer.toString());
     } catch (error) { 
       console.log(error);
     }
@@ -426,6 +477,13 @@ export default function Page() {
         console.log("please connect wallet!");
         return
       }
+      const winnerResult  = await handleSetWinner();
+      if(winnerResult?.winnerTx == undefined) {
+        return;
+      }
+      if(winnerResult?.winnerIndex == undefined) {
+        return;
+      }
 
       let provider: Provider;
       try {
@@ -435,12 +493,24 @@ export default function Page() {
         setProvider(provider);
       }
       const program = new Program(IDL as Idl, PROGRAM_ID);
-      const [pool, _poolBump] = await PublicKey.findProgramAddress(
+
+      const raffleId = Number(currentPool.raffleId);
+      const [pool, poolBump] = await PublicKey.findProgramAddress(
         [
-        Buffer.from(POOL_SEED)
+          Buffer.from(POOL_SEED),
+          new BN(raffleId).toArrayLike(Buffer,'le',4)
         ],
         program.programId
       );
+
+      const [newPool, newPoolBump] = await PublicKey.findProgramAddress(
+        [
+          Buffer.from(POOL_SEED),
+          new BN(raffleId + 1).toArrayLike(Buffer,'le',4)
+        ],
+        program.programId
+      );
+
 
       const [poolNativeAccount,_2] = await PublicKey.findProgramAddress(
         [
@@ -450,19 +520,21 @@ export default function Page() {
       );
 
       let poolData = await program.account.pool.fetch(pool);
+
+      const autoGenerate = Number(poolData.autoGenerate);
       
-      const raffleId = Number(poolData.raffleId);
-      const winnerIndex = Number(poolData.winnerIndex);
-      const winner = poolData.winner;
 
       const [userInfo, _] = await PublicKey.findProgramAddress(
         [
           Buffer.from(USER_INFO_SEED),
           new BN(raffleId).toArrayLike(Buffer,'le', 4),
-          new BN(winnerIndex).toArrayLike(Buffer,'le', 4)
+          new BN(winnerResult.winnerIndex).toArrayLike(Buffer,'le', 4)
         ],
         program.programId
       );
+      const userData = await program.account.userInfo.fetch(userInfo);
+
+      const winner = userData.buyer;
 
       const winnerAta = await getAssociatedTokenAddress(
         PAYTOKEN_MINT,
@@ -481,29 +553,75 @@ export default function Page() {
         program.programId
       );
 
-      const signature = await program.rpc.claimPrize(
-        raffleId,
-        winnerIndex,{
-          accounts: {
-            pool,
-            poolNativeAccount,
-            payTokenMint: PAYTOKEN_MINT,
-            signer: wallet.publicKey,
-            userInfo,
-            admin: wallet.publicKey,
-            winner: winner,
-            winnerAta,
-            adminAta,
-            poolAta,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-            systemProgram: SystemProgram.programId
+      const [globalState, globalStateBump] = await PublicKey.findProgramAddress(
+        [
+          Buffer.from(GLOBAL_STATE_SEED)
+        ],
+        program.programId
+      );
+
+      let transaction = new Transaction();
+      transaction.add(winnerResult.winnerTx);
+      if(autoGenerate == 1) {
+        const signature = program.instruction.claimPrizeWithNewRaffle(
+          raffleId,
+          winnerResult.winnerIndex,{
+            accounts: {
+              globalState,
+              pool,
+              newPool,
+              poolNativeAccount,
+              payTokenMint: PAYTOKEN_MINT,
+              signer: wallet.publicKey,
+              userInfo,
+              admin: wallet.publicKey,
+              winner: winner,
+              winnerAta,
+              adminAta,
+              poolAta,
+              tokenProgram: TOKEN_PROGRAM_ID,
+              associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+              systemProgram: SystemProgram.programId
+            }
           }
-        }
-      )
-      console.log("signature->",signature);
-      poolData = await program.account.pool.fetch(pool);
-      setCurrentPool(poolData);
+        )
+        transaction.add(signature);
+        const tx = await sendTransaction(transaction, connection, { skipPreflight: true });
+        await connection.confirmTransaction(tx, "confirmed");
+
+        console.log("signature->",tx);
+        poolData = await program.account.pool.fetch(newPool);
+        setCurrentPool(poolData);
+      } else {
+        const signature = program.instruction.claimPrize(
+          raffleId,
+          winnerIndex,{
+            accounts: {
+              pool,
+              poolNativeAccount,
+              payTokenMint: PAYTOKEN_MINT,
+              signer: wallet.publicKey,
+              userInfo,
+              admin: wallet.publicKey,
+              winner: winner,
+              winnerAta,
+              adminAta,
+              poolAta,
+              tokenProgram: TOKEN_PROGRAM_ID,
+              associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+              systemProgram: SystemProgram.programId
+            }
+          }
+        );
+        transaction.add(signature);
+        const tx = await sendTransaction(transaction, connection, { skipPreflight: true });
+        await connection.confirmTransaction(tx, "confirmed");
+
+        console.log("Your transaction signature for buying tickets with referral:", tx);
+        console.log("signature->",signature);
+        poolData = await program.account.pool.fetch(pool);
+        setCurrentPool(poolData);
+      }
     } catch (error) { 
       console.log(error);
     }
@@ -564,27 +682,28 @@ export default function Page() {
                   </p>
                 )}
               </div>
-              {/* <div>
+              <div>
                 <Label htmlFor="max-tickets" className="text-white">
-                  Max Tickets
+                  Multiplier
                 </Label>
                 <Input
                   id="max-tickets"
                   type="number"
-                  value={maxTickets}
+                  value={multiplier}
                   onChange={(e) =>
-                    setMaxTickets(parseInt(e.target.value))
+                    setMultiplier(parseFloat(e.target.value))
                   }
                   min={1}
+                  step = {0.01}
                   required
                   className="text-black"
                 />
                 {validationErrors.maxTickets && (
                   <p className="text-red-500 mt-1">
-                    {validationErrors.maxTickets}
+                    {validationErrors.multiPlierValue}
                   </p>
                 )}
-              </div> */}
+              </div> 
               <div>
                 <Label htmlFor="prize-amount" className="text-white">
                   Prize Amount (USDC)
@@ -646,160 +765,150 @@ export default function Page() {
             </Button>
           </div>
         </div>
-        {currentPool!==null && 
-          <div className="mt-12 w-full max-w-screen-lg px-4">
-            <div className="bg-blue-500 text-white p-6 rounded-lg">
-              <h2 className="text-2xl font-bold mb-4">Auto Recreate</h2>
-                <Button
-                  className="mt-6 relative inline-flex items-center justify-center w-full px-6 py-3 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500"
-                  onClick={() => handleAutoGenerate()}
-                >
-                  <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
+        
+        {/* <div className="mt-12 w-full max-w-screen-lg px-4">
+          <div className="bg-blue-500 text-white p-6 rounded-lg">
+            <h2 className="text-2xl font-bold mb-4">Auto Recreate</h2>
+              {pools.map((pool) => ( 
+                <div key={Number(pool.raffleId)}>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-2">
+                    <span className="text-white">
+                      RaffleID: {Number(pool.raffleId)}
+                    </span>
+                    <span className="text-white">
+                      Auto Generate:
+                    </span>
+                    <span>{pool.autoGenerate==1?"Yes":"No"}</span>
+                    <Button
+                      className="relative inline-flex items-center justify-center w-full px-6 py-3 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500"
+                      onClick={() => handleAutoGenerate()}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M14 5l7 7m0 0l-7 7m7-7H3"
-                      ></path>
-                    </svg>
-                  </span>
-                  <span className="absolute flex items-center justify-center w-full h-full text-white transition-all duration-300 transform group-hover:translate-x-full ease">
-                    {
-                    currentPool.autoGenerate == 1?`Turn off auto recreate`:`Turn on auto recreate`
-                    }
-                  </span>
-                  <span className="relative invisible">{currentPool!==null && (
-                      currentPool.autoGenerate == 1?`Turn off auto recreate`:`Turn on auto recreate`
-                    )}</span>
-                </Button>
-            </div>
+                      <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
+                        <svg
+                          className="w-6 h-6"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M14 5l7 7m0 0l-7 7m7-7H3"
+                          ></path>
+                        </svg>
+                      </span>
+                      <span className="absolute flex items-center justify-center w-full h-full text-white transition-all duration-300 transform group-hover:translate-x-full ease">
+                        {
+                        currentPool.autoGenerate == 1?`Turn off auto recreate`:`Turn on auto recreate`
+                        }
+                      </span>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+             
           </div>
-        }
+        </div> */}
 
-        {currentPool!==null && 
-          <div className="mt-12 w-full max-w-screen-lg px-4">
-            <div className="bg-blue-500 text-white p-6 rounded-lg">
-              <h2 className="text-2xl font-bold mb-4">Current Raffle</h2>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-1xl font-bold text-white">
-                      ID
-                    </TableHead>
-                    <TableHead className="text-1xl font-bold text-white">
-                      Ticket Value
-                    </TableHead>
-                    <TableHead className="text-1xl font-bold text-white">
-                      Max Tickets
-                    </TableHead>
-                    <TableHead className="text-1xl font-bold text-white">
-                      Prize Amount
-                    </TableHead>
-                    <TableHead className="text-1xl font-bold text-white">
-                      Auto Recreate
-                    </TableHead>
-                    <TableHead className="text-1xl font-bold text-white">
-                      Status
-                    </TableHead>
-                    <TableHead className="text-1xl font-bold text-white">
-                      Tickets Sold
-                    </TableHead>
-                    <TableHead className="text-1xl font-bold text-white">
-                      Total Value
-                    </TableHead>
+        
+        <div className="mt-12 w-full max-w-screen-lg px-2">
+          <div className="bg-blue-500 text-white p-6 rounded-lg">
+            <h2 className="text-2xl font-bold mb-4">Current Raffle</h2>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-1xl font-bold text-white">
+                    ID
+                  </TableHead>
+                  <TableHead className="text-1xl font-bold text-white">
+                    Ticket Value
+                  </TableHead>
+                  <TableHead className="text-1xl font-bold text-white">
+                    Max Tickets
+                  </TableHead>
+                  <TableHead className="text-1xl font-bold text-white">
+                    Prize Amount
+                  </TableHead>
+                  <TableHead className="text-1xl font-bold text-white">
+                    Auto Recreate
+                  </TableHead>
+                  <TableHead className="text-1xl font-bold text-white">
+                    Status
+                  </TableHead>
+                  <TableHead className="text-1xl font-bold text-white">
+                    Tickets Sold
+                  </TableHead>
+                  <TableHead className="text-1xl font-bold text-white">
+                    Total Value
+                  </TableHead>
+                  <TableHead className="text-1xl font-bold text-white">
+                    Auto Create
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+               {pools.length !=0 && pools.map((pool) => (
+                  <TableRow key={pool.account.raffleId}>
+                    <TableCell>{pool.account.raffleId}</TableCell>
+                    <TableCell>
+                      {pool.account.ticketPrice} USDC
+                    </TableCell>
+                    <TableCell>
+                      {pool.account.totalTicket}
+                    </TableCell>
+                    <TableCell>
+                      {pool.account.prize} USDC
+                      </TableCell>
+                    <TableCell>
+                      {pool.account.autoGenerate == 1 ? "Yes" : "No"}
+                    </TableCell>
+                    <TableCell>
+                      {Object.keys(pool.account.status)}
+                    </TableCell>
+                    <TableCell>
+                      {pool.account.purchasedTicket}
+                    </TableCell>
+                    <TableCell>
+                      {pool.account.totalTicket *
+                        pool.account.ticketPrice}{" "}
+                      USDC
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        className="relative inline-flex items-center justify-center w-full px-6 py-3 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500"
+                        onClick={() => handleAutoGenerate(pool.account.raffleId)}
+                      >
+                        <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
+                          <svg
+                            className="w-6 h-6"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M14 5l7 7m0 0l-7 7m7-7H3"
+                            ></path>
+                          </svg>
+                        </span>
+                        <span className="absolute flex items-center justify-center w-full h-full text-white transition-all duration-300 transform group-hover:translate-x-full ease">
+                          {
+                          pool.account.autoGenerate == 1?`Turn off`:`Turn on`
+                          }
+                        </span>
+                      </Button>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  { currentPool !== null &&
-                    <TableRow key={currentPool.raffleId}>
-                      <TableCell>{currentPool.raffleId}</TableCell>
-                      <TableCell>
-                        {currentPool.ticketPrice} USDC
-                      </TableCell>
-                      <TableCell>{currentPool.totalTicket}</TableCell>
-                      <TableCell>{currentPool.prize} USDC</TableCell>
-                      <TableCell>
-                        {currentPool.autoGenerate == 1 ? "Yes" : "No"}
-                      </TableCell>
-                      <TableCell>
-                        {Object.keys(currentPool.status)}
-                      </TableCell>
-                      <TableCell>
-                        {currentPool.purchasedTicket}
-                      </TableCell>
-                      <TableCell>
-                        {currentPool.totalTicket *
-                          currentPool.ticketPrice}{" "}
-                        USDC
-                      </TableCell>
-                    </TableRow>
-                  }
-                </TableBody>
-              </Table>
-              <Button
-                className="mt-6 relative inline-flex items-center justify-center w-full px-6 py-3 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500"
-                onClick={() => handleSetWinner()}
-              >
-                <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M14 5l7 7m0 0l-7 7m7-7H3"
-                    ></path>
-                  </svg>
-                </span>
-                <span className="absolute flex items-center justify-center w-full h-full text-white transition-all duration-300 transform group-hover:translate-x-full ease">
-                  Set Winner
-                </span>
-              </Button>
-              {
-              winner!==""&&
-              <>
-                <span>Winner Address: {winner}</span>
-              </>
-              }
-              <Button
-                className="mt-6 relative inline-flex items-center justify-center w-full px-6 py-3 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500"
-                onClick={() => handleClaimPrize()}
-              >
-                <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M14 5l7 7m0 0l-7 7m7-7H3"
-                    ></path>
-                  </svg>
-                </span>
-                <span className="absolute flex items-center justify-center w-full h-full text-white transition-all duration-300 transform group-hover:translate-x-full ease">
-                  Claim Prize
-                </span>
-              </Button>
-            </div>
+                ))}
+              </TableBody>
+            </Table>
           </div>
-        }
+        </div>
         
         <style jsx>{`
           @keyframes pulsate {

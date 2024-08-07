@@ -3,12 +3,38 @@
   "name": "solana_usdc_raffle",
   "instructions": [
     {
+      "name": "initialize",
+      "accounts": [
+        {
+          "name": "globalState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "user",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "createRaffle",
       "accounts": [
         {
           "name": "admin",
           "isMut": true,
           "isSigner": true
+        },
+        {
+          "name": "globalState",
+          "isMut": true,
+          "isSigner": false
         },
         {
           "name": "pool",
@@ -92,6 +118,10 @@
         }
       ],
       "args": [
+        {
+          "name": "raffleId",
+          "type": "u32"
+        },
         {
           "name": "autoGenerate",
           "type": "u8"
@@ -424,6 +454,100 @@
           "type": "u32"
         }
       ]
+    },
+    {
+      "name": "claimPrizeWithNewRaffle",
+      "accounts": [
+        {
+          "name": "globalState",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "newPool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolNativeAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "payTokenMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "signer",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "userInfo",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "admin",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "winner",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "winnerAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "adminAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "associatedTokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "raffleId",
+          "type": "u32"
+        },
+        {
+          "name": "newRaffleId",
+          "type": "u32"
+        },
+        {
+          "name": "buyerIndex",
+          "type": "u32"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -475,6 +599,22 @@
           {
             "name": "winnerTicketNumber",
             "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GlobalState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "totalRaffles",
+            "type": "u32"
+          },
+          {
+            "name": "owner",
+            "type": "publicKey"
           }
         ]
       }
@@ -691,9 +831,14 @@
       "code": 6021,
       "name": "InvalidWinner",
       "msg": "The winner is not correct!"
+    },
+    {
+      "code": 6022,
+      "name": "InvalidAutoGenerateValue",
+      "msg": "The auto generate value is not correct!"
     }
   ],
   "metadata": {
-    "address": "GRHGmjexpYhsU83j84We5PQPdTpqZVf5pVcfbzmLzVD4"
+    "address": "C72EpvLCmoSCfamqrcbqFsYRLQV83MccsTh9291PAw1Z"
   }
 }

@@ -70,6 +70,7 @@ import {
   DECIMALS,
   USER_INFO_SEED,
   POOL_VAULT_SEED,
+  GLOBAL_STATE_SEED,
 } from "@/lib/constants";
 
 export default function Main() {
@@ -81,9 +82,14 @@ export default function Main() {
   const [ticketQuantity, setTicketQuantity] = useState<number>(0);
   const [program, setProgram] = useState<Program>();
   const [pool, setCurrentpool] = useState<any>(null);
+  const [pools, setPools] = useState<any[]>([]);
+  const [liveRaffles, setLiveRaffles] = useState<any[]>([]);
+  const [completedPools, setCompletedPool] = useState<any[]>([]);
+  const [ticketQuantities, setTicketQuantities] = useState<number[]>([]);
   const [myTitckets, setMyTickets] = useState<any[]>([]);
   const [winnerInfo, setWinnerInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [totalRaffles, setTotalRaffles] = useState<number>(0);
 
   useEffect(() => {
     setIsConnected(connected);
@@ -106,23 +112,39 @@ export default function Main() {
           const program = new Program(IDL as Idl, PROGRAM_ID);
           setProgram(program);
 
-          const [pool, _] = await PublicKey.findProgramAddress(
+        
+          const [globalState, globalStateBump] = await PublicKey.findProgramAddress(
             [
-            Buffer.from(POOL_SEED)
+              Buffer.from(GLOBAL_STATE_SEED)
             ],
             program.programId
           );
+
+          const globalStateData = await program.account.globalState.fetch(globalState);
+          const totalRaffles = Number(globalStateData.totalRaffles);
+          setTotalRaffles(totalRaffles);
+
+          const [pool, _] = await PublicKey.findProgramAddress(
+            [
+              Buffer.from(POOL_SEED),
+              new BN(totalRaffles).toArrayLike(Buffer,'le',4)
+            ],
+            program.programId
+          );
+
 
           const poolData = await program.account.pool.fetch(pool);
           setCurrentpool(poolData);
        
           const allPoolAccount = await program.account.pool.all();
 
-          // set my tickets per raffle
-          await handleMyTickets();
+          setPools(allPoolAccount);
+          setLiveRaffles(allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() == "active"));
+          setCompletedPool(allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() == "completed"));
+          setTicketQuantities(new Array(allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() == "active").length + 1).fill(1));
 
           // set winnerInfo 
-          await handleWinnerInfo();
+          // await handleWinnerInfo();
         } catch (error) {
           console.log("Error while fetching pool data:", error);
         } finally {
@@ -132,8 +154,16 @@ export default function Main() {
     })();
   }, [wallet]);
 
+  useEffect(() => {
+    if(wallet && totalRaffles > 0) {
+      // set my tickets per raffle
+      handleMyTickets();
+    }
+  }, [wallet, totalRaffles])
+
   const handleMyTickets = async() => {
     try {
+
       if (wallet) {
         let provider: Provider;
         try {
@@ -142,27 +172,27 @@ export default function Main() {
           provider = new AnchorProvider(connection, wallet, {});
           setProvider(provider);
         }
-        
 
         const program = new Program(IDL as Idl, PROGRAM_ID);
-         const [pool, _] = await PublicKey.findProgramAddress(
-            [
-            Buffer.from(POOL_SEED)
-            ],
-            program.programId
-          );
-
-          const poolData = await program.account.pool.fetch(pool);
         
-          const currentRaffleId = Number(poolData.raffleId);
-          if(currentRaffleId > 0) {
-            let tickets = [];
+        if(totalRaffles > 0) {
+          let tickets = [];
+          for(let id = 1; id<=totalRaffles; id++) {
+            const [pool, _] = await PublicKey.findProgramAddress(
+              [
+                Buffer.from(POOL_SEED),
+                new BN(id).toArrayLike(Buffer,'le',4)
+              ],
+              program.programId
+            );
+            const poolData = await program.account.pool.fetch(pool);
+            console.log("poolData->",poolData);
             for(let i = 1; i<= Number(poolData.totalBuyers); i++) {
               const buyerIndex = i;
               const [userInfo, _] = await PublicKey.findProgramAddress(
                 [
-                  Buffer.from("user_info_seed"),
-                  new BN(currentRaffleId).toArrayLike(Buffer,'le', 4),
+                  Buffer.from(USER_INFO_SEED),
+                  new BN(id).toArrayLike(Buffer,'le', 4),
                   new BN(buyerIndex).toArrayLike(Buffer,'le', 4)
                 ],
                 program.programId
@@ -180,9 +210,13 @@ export default function Main() {
                   "status": Object.keys(poolData.status).toString()
                 })
               }
+              console.log("tickets->",tickets);
+
             }
-            setMyTickets(tickets);
           }
+        
+          setMyTickets(tickets);
+        }
       }
     } catch (error) {
       console.log(error);
@@ -240,7 +274,7 @@ export default function Main() {
     }
   }
 
-  const handleBuyTickets = async (totalTicket: number) => {
+  const handleBuyTickets = async (totalTicket: number, raffleId: number) => {
     try {
       if (wallet) {
         let provider: Provider;
@@ -250,21 +284,18 @@ export default function Main() {
           provider = new AnchorProvider(connection, wallet, {});
           setProvider(provider);
         }
-        if(!pool) {
-          console.log("please wait until fetch pool data");
-          return;
-        }
-
+      
         const program = new Program(IDL as Idl, PROGRAM_ID);
-        const raffleId = Number(pool.raffleId);
-        const buyerIndex = Number(pool.totalBuyers) + 1;
-
-        const [poolAddress, _poolAddressBump] = await PublicKey.findProgramAddress(
+        const [pool, _] = await PublicKey.findProgramAddress(
           [
-            Buffer.from("pool")
+            Buffer.from(POOL_SEED),
+            new BN(raffleId).toArrayLike(Buffer,'le',4)
           ],
           program.programId
         );
+        const poolData = await program.account.pool.fetch(pool);
+
+        const buyerIndex = Number(poolData.totalBuyers) + 1;
 
         const [poolNativeAccount, _poolNativeAccountbump] = await PublicKey.findProgramAddress(
           [
@@ -299,13 +330,14 @@ export default function Main() {
         
         const [poolAta, poolAtaBump] = await PublicKey.findProgramAddress(
           [
-            Buffer.from(POOL_VAULT_SEED)
+            Buffer.from(POOL_VAULT_SEED),
+            new BN(raffleId).toArrayLike(Buffer, 'le',4)
           ],
           program.programId
         );
 
         const random = randomnessAccountAddress(
-          pool.newRandomAddress.toBuffer()
+          poolData.newRandomAddress.toBuffer()
         );
 
         // Create a new oracle instance to handle random numbers
@@ -314,11 +346,11 @@ export default function Main() {
         const treasury = networkState.config.treasury;
 
         const totalPrice = totalTicket * 10 ** DECIMALS;
-        const accountFeeSol = Number(pool.accountFee) * totalTicket / Number(pool.totalTicket);
+        const accountFeeSol = Number(poolData.accountFee) * totalTicket / Number(poolData.totalTicket);
 
         // Call the buy_tickets function
         const signature = await program.rpc.buyTickets(
-          [...pool.newRandomAddress.toBuffer()],
+          [...poolData.newRandomAddress.toBuffer()],
           raffleId,
           buyerIndex,
           totalTicket,
@@ -326,7 +358,7 @@ export default function Main() {
           accountFeeSol,
           {
             accounts: {
-              pool:poolAddress,
+              pool,
               poolNativeAccount,
               payTokenMint:PAYTOKEN_MINT,
               buyer: wallet.publicKey,
@@ -349,8 +381,10 @@ export default function Main() {
 
         console.log("Your transaction signature for buying tickets without referral:", signature);
 
-        const poolData = await program.account.pool.fetch(poolAddress);
-        setCurrentpool(poolData);
+        const allPoolAccount = await program.account.pool.all();
+        setPools(allPoolAccount);
+        setLiveRaffles(allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() == "active"));
+        setCompletedPool(allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() == "completed"));
         await handleMyTickets();
       }
     } catch (error) {
@@ -408,7 +442,7 @@ export default function Main() {
                 </h1>
               </div>
               {
-                pool &&
+                liveRaffles.length > 0 &&
                 <div className="mt-12 w-full max-w-screen-lg px-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="bg-gradient-to-r from-teal-500 to-purple-500 text-white p-8 rounded-lg shadow-xl">
@@ -418,33 +452,33 @@ export default function Main() {
                       <div className="grid grid-cols-2 gap-4 mb-8">
                         <div>
                           <span className="font-medium">Raffle Index: </span>
-                          {Number(pool.raffleId)}
+                          {Number(liveRaffles[0].account.raffleId)}
                         </div>
                         <div>
                           <span className="font-medium">Status: </span>
-                          {Object.keys(pool.status).toString() == "active" ? "Live" : "Completed"}
+                          {Object.keys(liveRaffles[0].account.status).toString() == "active" ? "Live" : "Completed"}
                         </div>
                         <div>
                           <span className="font-medium">Ticket Price: </span>
-                          ${pool.ticketPrice} USDC
+                          ${liveRaffles[0].account.ticketPrice} USDC
                         </div>
                         <div>
                           <span className="font-medium">Total Tickets: </span>
-                          {pool.totalTicket} 
+                          {liveRaffles[0].account.totalTicket} 
                         </div>
                         <div>
                           <span className="font-medium">Tickets Sold: </span>
-                          {pool.purchasedTicket} 
+                          {liveRaffles[0].account.purchasedTicket} 
                         </div>
                         <div>
-                          <span className="font-medium">Prize Pool: </span>
-                          ${pool.prize} USDC
+                          <span className="font-medium">Prize pool: </span>
+                          ${liveRaffles[0].account.prize} USDC
                         </div>
                         { 
-                          pool.autoGenerate == 1 &&
+                          liveRaffles[0].account.autoGenerate == 1 &&
                             <div>
                               <span className="font-medium">Next Lottery Size: </span>
-                              ${Math.floor(pool.prize * pool.multiplier) + 1} USDC
+                              ${Math.floor(liveRaffles[0].account.prize * liveRaffles[0].account.multiplier) + 1} USDC
                             </div>
                         }
                       </div>
@@ -463,9 +497,15 @@ export default function Main() {
                             <Label htmlFor="ticket-quantity">Tickets</Label>
                             <Input
                               className="w-full text-green-500"
-                              value={ticketQuantity}
+                              value={ticketQuantities[0]}
                               onChange={(e) =>
-                                setTicketQuantity(parseInt(e.target.value))
+                                setTicketQuantities(() => ticketQuantities.map((item, i) => {
+                                  if (i == 0) {
+                                    return parseInt(e.target.value);
+                                  }
+
+                                  return item;
+                                }))
                               }
                               id="ticket-quantity"
                               max="69"
@@ -477,7 +517,13 @@ export default function Main() {
                             <Button
                               className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-md group hover:bg-pink-500"
                               onClick={(e) =>
-                                setTicketQuantity(ticketQuantity + 5)
+                                setTicketQuantities(() => ticketQuantities.map((item, i) => {
+                                  if (i == 0) {
+                                    return item + 5;
+                                  }
+
+                                  return item;
+                                }))
                               }
                             >
                               <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
@@ -507,7 +553,13 @@ export default function Main() {
                             <Button
                               className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-md group hover:bg-pink-500"
                               onClick={() =>
-                                setTicketQuantity(ticketQuantity + 10)
+                                setTicketQuantities(() => ticketQuantities.map((item, i) => {
+                                  if (i == 0) {
+                                    return item + 10;
+                                  }
+
+                                  return item;
+                                }))
                               }
                             >
                               <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
@@ -537,7 +589,13 @@ export default function Main() {
                             <Button
                               className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-md group hover:bg-pink-500"
                               onClick={(e) =>
-                                setTicketQuantity(ticketQuantity + 50)
+                                setTicketQuantities(() => ticketQuantities.map((item, i) => {
+                                  if (i == 0) {
+                                    return item + 50;
+                                  }
+
+                                  return item;
+                                }))
                               }
                             >
                               <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
@@ -567,7 +625,13 @@ export default function Main() {
                             <Button
                               className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-md group hover:bg-pink-500"
                               onClick={() =>
-                                setTicketQuantity(ticketQuantity + 100)
+                                setTicketQuantities(() => ticketQuantities.map((item, i) => {
+                                  if (i == 0) {
+                                    return item + 100;
+                                  }
+
+                                  return item;
+                                }))
                               }
                             >
                               <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
@@ -597,9 +661,9 @@ export default function Main() {
                         </div>
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                           <span>Total Cost:</span>
-                          <span>${(ticketQuantity * pool.ticketPrice).toFixed(2)} USDC</span>
+                          <span>${(ticketQuantities[0] * pool.ticketPrice).toFixed(2)} USDC</span>
                         </div>
-                        <Button onClick={() => handleBuyTickets(ticketQuantity)} className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500">
+                        <Button onClick={() => handleBuyTickets(ticketQuantities[0], liveRaffles[0].account.raffleId)} className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500">
                           <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
                             <svg
                               className="w-6 h-6"
@@ -626,6 +690,121 @@ export default function Main() {
                   </div>
                 </div>
               }
+              <div className="mt-12 w-full max-w-screen-lg px-4">
+                { 
+                  liveRaffles.length > 1 ?
+                    <div className="mt-12 w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-white">
+                        {
+                          liveRaffles.slice(1).map((liveRaffle, i) => {
+                            let styleType;
+
+                            if (i % 3 == 0) {
+                              styleType = "from-green-400 to-blue-500";
+                            } else if (i % 3 == 1) {
+                              styleType = "from-pink-500 to-purple-400";
+                            } else {
+                              styleType = "from-blue-500 to-green-400";
+                            }
+                            return (
+                              <Card key={liveRaffle.account.raffleId} className={`bg-gradient-to-r ${styleType} text-white shadow-lg hover:shadow-2xl transition-all duration-300`}>
+                                <CardHeader>
+                                  <CardTitle>Lottery</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <span className="font-medium">Raffle Index: </span>
+                                      {Number(liveRaffle.account.raffleId)}
+                                    </div>
+                                    <div>
+                                      <span className="font-medium">Status: </span>
+                                      {Object.keys(liveRaffle.account.status).toString() == "active" ? "Live" : "Completed"}
+                                    </div>
+                                    <div>
+                                      <span className="font-medium">Ticket Price: </span>
+                                      ${liveRaffle.account.ticketPrice} USDC
+                                    </div>
+                                    <div>
+                                      <span className="font-medium">Total Tickets: </span>
+                                      {liveRaffle.account.totalTicket} 
+                                    </div>
+                                    <div>
+                                      <span className="font-medium">Tickets Sold: </span>
+                                      {liveRaffle.account.purchasedTicket} 
+                                    </div>
+                                    <div>
+                                      <span className="font-medium">Prize Pool: </span>
+                                      ${liveRaffle.account.prize} USDC
+                                    </div>
+                                    { 
+                                      liveRaffle.account.autoGenerate == 1 &&
+                                        <div>
+                                          <span className="font-medium">Next Lottery Size: </span>
+                                          ${Math.floor(liveRaffle.account.prize * liveRaffle.account.multiplier)} USDC
+                                        </div>
+                                    }
+                                  </div>
+                                  <div className="grid gap-4">
+                                    <div>
+                                      <Label htmlFor="ticket-quantity">Tickets</Label>
+                                      <Input
+                                        className="w-full text-green-500"
+                                        value={ticketQuantities[i + 1]}
+                                        onChange={(e) =>
+                                          setTicketQuantities(() => ticketQuantities.map((item, index) => {
+                                            if (i + 1 == index) {
+                                              return parseInt(e.target.value)
+                                            }
+                
+                                            return item;
+                                          }))
+                                        }
+                                        id="ticket-quantity"
+                                        max="69"
+                                        min="1"
+                                        type="number"
+                                      />
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                      <span>Total Cost:</span>
+                                      <span>${(ticketQuantities[i + 1] * liveRaffle.account.ticketPrice).toFixed(2)} USDC</span>
+                                    </div>
+                                    <Button onClick={() => handleBuyTickets(ticketQuantities[i + 1], liveRaffle.account.raffleId)}
+                                      className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500"
+                                    >
+                                      <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
+                                        <svg
+                                          className="w-6 h-6"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                          xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth="2"
+                                            d="M14 5l7 7m0 0l-7 7m7-7H3"
+                                          ></path>
+                                        </svg>
+                                      </span>
+                                      <span className="absolute flex items-center justify-center w-full h-full text-white transition-all duration-300 transform group-hover:translate-x-full ease">
+                                        Buy Tickets
+                                      </span>
+                                      <span className="relative invisible">
+                                        Buy Tickets
+                                      </span>
+                                    </Button>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })  
+                        }        
+                    </div> :
+                    <div className="flex justify-center items-center"><h2 className="text-xl font-bold mb-4">{liveRaffles.length == 1 ? "" : "No live Raffles!"}</h2></div>
+                }
+              </div>
             </>
         }
         <div className="mt-12 w-full max-w-screen-lg px-4">
@@ -735,41 +914,59 @@ export default function Main() {
           </div>
         </div>
         <div className="mt-12 w-full max-w-screen-lg px-4">
-          <div className="mt-12 w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-8 text-white">
+          <div className="mt-12 w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-white">
           {
-            winnerInfo!==null?
-              <>
-                   <Card key={pool.raffleId}  className={`bg-gradient-to-r  text-white shadow-lg hover:shadow-2xl transition-all duration-300`}>
-                     <CardHeader>
-                       <CardTitle>Lottery ({getTimeFromDate(Number(winnerInfo.startTime))})</CardTitle>
-                     </CardHeader>
-                     <CardContent>
-                       <div className="grid grid-cols-2 gap-4">
-                         <div>
-                           <span className="font-medium">Winner:</span>
-                           {winnerInfo.buyer.toBase58().slice(0, 5)}...{winnerInfo.buyer.toBase58().slice(-5)}
-                         </div>
-                         <div>
-                           <span className="font-medium">Winning Ticket:</span>
-                           {winnerInfo.winnerTicketNumber}
-                         </div>
-                         <div>
-                           <span className="font-medium">Amount Won:</span>
-                           ${winnerInfo.winAmount} USDC
-                         </div>
-                         <div>
-                           <span className="font-medium">Timestamp:</span>
-                           {getTimeFromDate(Number(winnerInfo.winnerTime))}
-                         </div>
-                       </div>
-                     </CardContent>
-                   </Card>
-                </>
-              :
+            completedPools.length > 0 ?
+            completedPools.map((completedPool, i) => {
+                let styleType;
+
+                if (i % 3 == 0) {
+                  styleType = "from-green-400 to-blue-500";
+                } else if (i % 3 == 1) {
+                  styleType = "from-blue-500 to-purple-500";
+                } else {
+                  styleType = "from-purple-500 to-pink-500";
+                }
+
+                const timestamp = completedPool.account.startTime;
+                const date = new Date(timestamp * 1000);
+
+            
+                const dateString = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+                
+                return (
+                  <Card key={completedPool.account.raffleId}  className={`bg-gradient-to-r ${styleType} text-white shadow-lg hover:shadow-2xl transition-all duration-300`}>
+                    <CardHeader>
+                      <CardTitle>Lottery ({`${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`})</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <span className="font-medium">Winner:</span>
+                          {completedPool.account.winner.toBase58().slice(0, 3)}...{completedPool.account.winner.toBase58().slice(-3)}
+                        </div>
+                        <div>
+                          <span className="font-medium">Winning Ticket:</span>
+                          {completedPool.account.winnerTicketNumber}
+                        </div>
+                        <div>
+                          <span className="font-medium">Amount Won:</span>
+                          ${completedPool.account.prize} USDC
+                        </div>
+                        <div>
+                          <span className="font-medium">Timestamp:</span>
+                          {/* 2023-04-30 23:59:59 */}
+                          {dateString}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              }) :
               <>
                 <div></div>
                 <div className="flex justify-center items-center">
-                  <h2 className="text-xl font-bold mb-4">No Completed Raffle!</h2>
+                  <h2 className="text-xl font-bold mb-4">No Completed Raffles!</h2>
                 </div>
                 <div></div>
               </>  
