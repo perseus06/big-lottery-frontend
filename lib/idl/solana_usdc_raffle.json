@@ -495,7 +495,7 @@
         },
         {
           "name": "admin",
-          "isMut": true,
+          "isMut": false,
           "isSigner": false
         },
         {
@@ -515,6 +515,11 @@
         },
         {
           "name": "poolAta",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "newPoolAta",
           "isMut": true,
           "isSigner": false
         },
@@ -839,6 +844,6 @@
     }
   ],
   "metadata": {
-    "address": "C72EpvLCmoSCfamqrcbqFsYRLQV83MccsTh9291PAw1Z"
+    "address": "AFggNpitbfbnqFzwoA8tcDcGTAzDerkmTpqQE6cT48Vf"
   }
 }

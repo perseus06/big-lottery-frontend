@@ -1,7 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
 import { BN } from "@project-serum/anchor";
 
-const PROGRAM_ID = "C72EpvLCmoSCfamqrcbqFsYRLQV83MccsTh9291PAw1Z"; // mine
+const PROGRAM_ID = "AFggNpitbfbnqFzwoA8tcDcGTAzDerkmTpqQE6cT48Vf"; // mine
 
 const GLOBAL_STATE_SEED = "global_state";
 const POOL_SEED = "pool"; // mine

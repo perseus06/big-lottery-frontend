@@ -356,10 +356,10 @@ export default function Page() {
       >
         <source src="/gold.mp4" type="video/mp4" />
       </video>
-      <div className="relative z-10">
-        <header className="flex items-center w-full max-w-screen-xl">
-          <div className="flex items-center space-x-2">
-            <div className="animate-pulsate">
+      <div className="relative z-10 w-full">
+        <header className="md:flex items-center w-full max-w-screen-xl">
+          <div className="md:flex items-center space-x-2">
+            <div className="animate-pulsate w-fit">
               <Image
                 src="/lottery-logo.png"
                 alt="World's Biggest Lottery"

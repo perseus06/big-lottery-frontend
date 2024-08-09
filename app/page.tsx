@@ -81,7 +81,6 @@ export default function Main() {
   const [isConnected, setIsConnected] = useState(false);
   const [ticketQuantity, setTicketQuantity] = useState<number>(0);
   const [program, setProgram] = useState<Program>();
-  const [pool, setCurrentpool] = useState<any>(null);
   const [pools, setPools] = useState<any[]>([]);
   const [liveRaffles, setLiveRaffles] = useState<any[]>([]);
   const [completedPools, setCompletedPool] = useState<any[]>([]);
@@ -90,6 +89,7 @@ export default function Main() {
   const [winnerInfo, setWinnerInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [totalRaffles, setTotalRaffles] = useState<number>(0);
+  const [biggestLottery, setBiggestLottery] = useState<number>(0);
 
   useEffect(() => {
     setIsConnected(connected);
@@ -124,25 +124,20 @@ export default function Main() {
           const totalRaffles = Number(globalStateData.totalRaffles);
           setTotalRaffles(totalRaffles);
 
-          const [pool, _] = await PublicKey.findProgramAddress(
-            [
-              Buffer.from(POOL_SEED),
-              new BN(totalRaffles).toArrayLike(Buffer,'le',4)
-            ],
-            program.programId
-          );
-
-
-          const poolData = await program.account.pool.fetch(pool);
-          setCurrentpool(poolData);
-       
           const allPoolAccount = await program.account.pool.all();
 
           setPools(allPoolAccount);
-          setLiveRaffles(allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() == "active"));
+          const activeRaffles = allPoolAccount.filter(
+            (item: any) => Object.keys(item.account.status).toString() === "active"
+          );
+          setLiveRaffles(activeRaffles);
+          
           setCompletedPool(allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() == "completed"));
           setTicketQuantities(new Array(allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() == "active").length + 1).fill(1));
-
+          const biggestPrize = activeRaffles.reduce((max, item) => {
+            return item.account.prize > max ? item.account.prize : max;
+          }, 0);
+          setBiggestLottery(biggestPrize);
           // set winnerInfo 
           // await handleWinnerInfo();
         } catch (error) {
@@ -197,6 +192,7 @@ export default function Main() {
                 ],
                 program.programId
               );
+              console.log("userInfo->", userInfo.toString());
               const userData = await program.account.userInfo.fetch(userInfo);
               if(userData.buyer.toString() ==  wallet.publicKey.toString()) {
                 const fromIndex = Number(userData.fromIndex);
@@ -284,7 +280,7 @@ export default function Main() {
           provider = new AnchorProvider(connection, wallet, {});
           setProvider(provider);
         }
-      
+
         const program = new Program(IDL as Idl, PROGRAM_ID);
         const [pool, _] = await PublicKey.findProgramAddress(
           [
@@ -317,11 +313,13 @@ export default function Main() {
           PAYTOKEN_MINT,
           wallet?.publicKey,
         );
+        console.log("buyerAta->",buyerAta.toString());
         
         const adminAta = getAssociatedTokenAddressSync(
           PAYTOKEN_MINT,
           ADMIN_ADDRESS
         );
+        console.log("adminAta->",adminAta.toString());
 
         const referralAta = getAssociatedTokenAddressSync(
           PAYTOKEN_MINT,
@@ -335,6 +333,7 @@ export default function Main() {
           ],
           program.programId
         );
+        console.log("poolAta->",poolAta.toString());
 
         const random = randomnessAccountAddress(
           poolData.newRandomAddress.toBuffer()
@@ -414,8 +413,8 @@ export default function Main() {
       >
         <source src="/gold.mp4" type="video/mp4" />
       </video>
-      <div className="relative z-10">
-        <header className="flex items-center w-full max-w-screen-xl">
+      <div className="relative z-10 w-full">
+        <header className="md:flex items-center w-full max-w-screen-xl">
           <div className="flex items-center space-x-2">
             <div className="animate-pulsate">
               <Image
@@ -438,7 +437,7 @@ export default function Main() {
             <>
               <div className="mt-12 flex justify-center items-center">
                 <h1 className="text-[144px] leading-none font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-yellow-500 to-green-500 animate-pulse drop-shadow-lg shadow-white">
-                  $69,420.00
+                  ${biggestLottery}
                 </h1>
               </div>
               {
@@ -661,7 +660,7 @@ export default function Main() {
                         </div>
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                           <span>Total Cost:</span>
-                          <span>${(ticketQuantities[0] * pool.ticketPrice).toFixed(2)} USDC</span>
+                          <span>${(ticketQuantities[0] * liveRaffles[0].account.ticketPrice).toFixed(2)} USDC</span>
                         </div>
                         <Button onClick={() => handleBuyTickets(ticketQuantities[0], liveRaffles[0].account.raffleId)} className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500">
                           <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">

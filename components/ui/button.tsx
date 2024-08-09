@@ -93,7 +93,7 @@ export const CustomWalletButton = () => {
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="absolute inset-0 bg-black opacity-50"></div>
-          <div className="relative bg-gradient-to-r from-green-400 to-blue-500 p-8 rounded-lg shadow-lg text-white max-w-md mx-auto">
+          <div className="relative bg-gradient-to-r from-green-400 to-blue-500 p-8 rounded-lg shadow-lg text-white max-w-md mx-auto w-[90%]">
             <h2 className="text-2xl font-bold mb-4">Wallet Options</h2>
             <div className="mb-4">
               <span className="font-medium">Connected Address:</span>
