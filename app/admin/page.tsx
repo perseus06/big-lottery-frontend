@@ -356,7 +356,7 @@ export default function Page() {
       >
         <source src="/gold.mp4" type="video/mp4" />
       </video>
-      <div className="relative z-10 w-full">
+      <div className="relative z-10 md:w-auto w-full">
         <header className="md:flex items-center w-full max-w-screen-xl">
           <div className="md:flex items-center space-x-2">
             <div className="animate-pulsate w-fit">

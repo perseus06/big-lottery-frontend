@@ -413,7 +413,7 @@ export default function Main() {
       >
         <source src="/gold.mp4" type="video/mp4" />
       </video>
-      <div className="relative z-10 w-full">
+      <div className="relative z-10 w-full md:w-auto">
         <header className="md:flex items-center w-full max-w-screen-xl">
           <div className="flex items-center space-x-2">
             <div className="animate-pulsate">
