@@ -291,7 +291,24 @@ export default function Main() {
         );
         const poolData = await program.account.pool.fetch(pool);
 
-        const buyerIndex = Number(poolData.totalBuyers) + 1;
+        let buyerIndex = Number(poolData.totalBuyers) + 1;
+
+        while(true) {
+          try {
+            const [userInfo, userInfoBump] = await PublicKey.findProgramAddress(
+              [
+                Buffer.from(USER_INFO_SEED),
+                new BN(raffleId).toArrayLike(Buffer,'le',4),
+                new BN(buyerIndex).toArrayLike(Buffer,'le',4)
+              ],
+              program.programId
+            );
+            await program.account.userInfo.fetch(userInfo);
+            buyerIndex += 1;
+          } catch (error) {
+            break;
+          }
+        }
 
         const [poolNativeAccount, _poolNativeAccountbump] = await PublicKey.findProgramAddress(
           [
