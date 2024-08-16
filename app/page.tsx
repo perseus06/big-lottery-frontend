@@ -435,14 +435,14 @@ export default function Main() {
       key="1"
       className="flex flex-col items-center justify-center bg-gradient-to-r from-green-400 to-blue-500 text-white min-h-screen p-4 relative"
     >
-      <video
+      {/* <video
         autoPlay
         loop
         muted
         className="absolute top-0 left-0 w-full h-full object-cover opacity-15 z-0"
       >
         <source src="/gold.mp4" type="video/mp4" />
-      </video>
+      </video> */}
       <div className="relative z-10 w-full md:w-auto">
         <header className="md:flex items-center w-full max-w-screen-xl">
           <div className="flex items-center space-x-2">
@@ -838,7 +838,7 @@ export default function Main() {
         }
         <div className="mt-12 w-full max-w-screen-lg px-4">
           <div className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white p-6 rounded-lg">
-            <h2 className="text-2xl font-bold mb-4">Referral</h2>
+            <h2 className="text-2xl font-bold mb-4">My Referral Link</h2>
             <div className="grid gap-4">
               <div>
                 <div className="flex items-center space-x-2">
@@ -846,7 +846,7 @@ export default function Main() {
                     className="flex-1 text-green-500"
                     value={
                       isConnected && publicKey
-                        ? `http://localhost:3000?ref=${publicKey.toBase58()}`
+                        ? `https://rafflebags.com?ref=${publicKey.toBase58()}`
                         : ""
                     }
                     readOnly
@@ -856,7 +856,7 @@ export default function Main() {
                     onClick={() => {
                       if (isConnected && publicKey) {
                         navigator.clipboard.writeText(
-                          `http://localhost:3000?ref=${publicKey.toBase58()}`
+                          `https://rafflebags.com?ref=${publicKey.toBase58()}`
                         );
                       }
                     }}
@@ -886,7 +886,7 @@ export default function Main() {
               </div>
               <div>
                 <span className="font-medium">Referral Bonus: </span>
-                5% of ticket purchase
+                You gain 5% on each ticket purchase.
               </div>
             </div>
           </div>
