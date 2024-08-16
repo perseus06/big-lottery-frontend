@@ -73,6 +73,8 @@ import {
   GLOBAL_STATE_SEED,
 } from "@/lib/constants";
 
+import RaffleDetailsModal from "./components/raffleDetailsModal";
+
 export default function Main() {
   const { connection } = useConnection();
   const wallet = useAnchorWallet();
@@ -90,6 +92,8 @@ export default function Main() {
   const [loading, setLoading] = useState(true);
   const [totalRaffles, setTotalRaffles] = useState<number>(0);
   const [biggestLottery, setBiggestLottery] = useState<number>(0);
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedRaffle, setSelectedRaffle] = useState(null); // State to track which raffle's modal is open
 
   useEffect(() => {
     setIsConnected(connected);
@@ -127,10 +131,10 @@ export default function Main() {
           const allPoolAccount = await program.account.pool.all();
 
           setPools(allPoolAccount);
-          const activeRaffles = allPoolAccount.filter(
+          let activeRaffles = allPoolAccount.filter(
             (item: any) => Object.keys(item.account.status).toString() === "active"
           );
-          setLiveRaffles(activeRaffles);
+          // setLiveRaffles(activeRaffles);
           
           setCompletedPool(allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() == "completed"));
           setTicketQuantities(new Array(allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() == "active").length + 1).fill(1));
@@ -138,6 +142,18 @@ export default function Main() {
             return item.account.prize > max ? item.account.prize : max;
           }, 0);
           setBiggestLottery(biggestPrize);
+          // Find the raffle with the biggest prize
+          const biggestRaffleIndex = activeRaffles.findIndex(
+            (item: any) => item.account.prize === biggestPrize
+          );
+
+          if (biggestRaffleIndex !== -1) {
+            // Remove the raffle with the biggest prize from its current position
+            const [biggestRaffle] = activeRaffles.splice(biggestRaffleIndex, 1);
+            // Insert the raffle with the biggest prize at the beginning
+            activeRaffles = [biggestRaffle, ...activeRaffles];
+            setLiveRaffles(activeRaffles); // Update the state with the modified array
+          }
           // set winnerInfo 
           // await handleWinnerInfo();
         } catch (error) {
@@ -156,9 +172,13 @@ export default function Main() {
     }
   }, [wallet, totalRaffles])
 
+  const handleOpenModal = (raffle: any) => {
+    setSelectedRaffle(raffle);
+    setIsOpen(true); // Open the modal
+  };
+
   const handleMyTickets = async() => {
     try {
-
       if (wallet) {
         let provider: Provider;
         try {
@@ -181,7 +201,6 @@ export default function Main() {
               program.programId
             );
             const poolData = await program.account.pool.fetch(pool);
-            console.log("poolData->",poolData);
             for(let i = 1; i<= Number(poolData.totalBuyers); i++) {
               const buyerIndex = i;
               const [userInfo, _] = await PublicKey.findProgramAddress(
@@ -192,7 +211,6 @@ export default function Main() {
                 ],
                 program.programId
               );
-              console.log("userInfo->", userInfo.toString());
               const userData = await program.account.userInfo.fetch(userInfo);
               if(userData.buyer.toString() ==  wallet.publicKey.toString()) {
                 const fromIndex = Number(userData.fromIndex);
@@ -206,8 +224,6 @@ export default function Main() {
                   "status": Object.keys(poolData.status).toString()
                 })
               }
-              console.log("tickets->",tickets);
-
             }
           }
         
@@ -330,13 +346,11 @@ export default function Main() {
           PAYTOKEN_MINT,
           wallet?.publicKey,
         );
-        console.log("buyerAta->",buyerAta.toString());
         
         const adminAta = getAssociatedTokenAddressSync(
           PAYTOKEN_MINT,
           ADMIN_ADDRESS
         );
-        console.log("adminAta->",adminAta.toString());
 
         const referralAta = getAssociatedTokenAddressSync(
           PAYTOKEN_MINT,
@@ -350,7 +364,6 @@ export default function Main() {
           ],
           program.programId
         );
-        console.log("poolAta->",poolAta.toString());
 
         const random = randomnessAccountAddress(
           poolData.newRandomAddress.toBuffer()
@@ -446,37 +459,42 @@ export default function Main() {
             <CustomWalletButton />
           </div>
         </header>
+        <div className="mt-12 w-full max-w-screen-lg px-4">
+          <div className="bg-gradient-to-r from-teal-500 to-purple-500 text-white p-8 rounded-lg shadow-xl text-center mb-6">
+            <h2 className="text-3xl font-bold mb-6">
+              🎉 Welcome to the World's Biggest Lottery! 🎉
+            </h2>
+            <p className="text-lg">
+              This is the world's Biggest Lottery! Every time a smaller lottery is completed, a larger lottery is created.
+              Eventually, we aim to be the World's Largest Raffle Lottery.
+            </p>
+            <p className="text-lg">
+              Don't miss your chance to win big! Buy your tickets now
+              and join the excitement. Every ticket purchased brings you
+              closer to the enormous prize pool.
+            </p>
+          </div>
+        </div>
         {
           loading ?
             <div className="flex justify-center items-center">
               <h2 className="text-xl font-bold mb-4">Loading...</h2>
             </div> :
             <>
-              <div className="mt-12 flex justify-center items-center">
-                <h1 className="text-[144px] leading-none font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-yellow-500 to-green-500 animate-pulse drop-shadow-lg shadow-white">
-                  ${biggestLottery}
-                </h1>
-              </div>
               {
                 liveRaffles.length > 0 &&
                 <div className="mt-12 w-full max-w-screen-lg px-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1">
                     <div className="bg-gradient-to-r from-teal-500 to-purple-500 text-white p-8 rounded-lg shadow-xl">
-                      <h2 className="text-3xl font-bold mb-6">
-                        🎉 Welcome to the World's Biggest Lottery! 🎉
-                      </h2>
-                      <div className="grid grid-cols-2 gap-4 mb-8">
+                      <div className="mt-6 flex justify-center items-center mb-6">
+                        <h4 className="text-[24px] md:text-[48px] leading-none font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-yellow-500 to-green-500 animate-pulse drop-shadow-lg shadow-white">
+                          ${biggestLottery}
+                        </h4>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mb-2 text-center">
                         <div>
-                          <span className="font-medium">Raffle Index: </span>
+                          <span className="font-medium">Raffle Number: </span>
                           {Number(liveRaffles[0].account.raffleId)}
-                        </div>
-                        <div>
-                          <span className="font-medium">Status: </span>
-                          {Object.keys(liveRaffles[0].account.status).toString() == "active" ? "Live" : "Completed"}
-                        </div>
-                        <div>
-                          <span className="font-medium">Ticket Price: </span>
-                          ${liveRaffles[0].account.ticketPrice} USDC
                         </div>
                         <div>
                           <span className="font-medium">Total Tickets: </span>
@@ -490,26 +508,14 @@ export default function Main() {
                           <span className="font-medium">Prize pool: </span>
                           ${liveRaffles[0].account.prize} USDC
                         </div>
-                        { 
-                          liveRaffles[0].account.autoGenerate == 1 &&
-                            <div>
-                              <span className="font-medium">Next Lottery Size: </span>
-                              ${Math.floor(liveRaffles[0].account.prize * liveRaffles[0].account.multiplier) + 1} USDC
-                            </div>
-                        }
                       </div>
-                      <p className="text-lg">
-                        Don't miss your chance to win big! Buy your tickets now
-                        and join the excitement. Every ticket purchased brings you
-                        closer to the enormous prize pool.
-                      </p>
-                    </div>
-
-                    <div className="bg-gradient-to-l from-teal-500 to-purple-500 text-white-500 p-6 rounded-lg">
-                      <h2 className="text-2xl font-bold mb-4">Ticket Purchase</h2>
+                      {/* <div className="bg-gradient-to-l from-teal-500 to-purple-500 text-white-500 p-6 rounded-lg"> */}
+                      <div className="text-center">
+                        <h2 className="text-2xl font-bold mb-4">Ticket Purchase</h2>
+                      </div>
                       <div className="grid gap-4">
                         <div className="grid gap-4">
-                          <div>
+                          <div className="grid gap-4 text-left">
                             <Label htmlFor="ticket-quantity">Tickets</Label>
                             <Input
                               className="w-full text-green-500"
@@ -679,30 +685,39 @@ export default function Main() {
                           <span>Total Cost:</span>
                           <span>${(ticketQuantities[0] * liveRaffles[0].account.ticketPrice).toFixed(2)} USDC</span>
                         </div>
-                        <Button onClick={() => handleBuyTickets(ticketQuantities[0], liveRaffles[0].account.raffleId)} className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500">
-                          <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
-                            <svg
-                              className="w-6 h-6"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M14 5l7 7m0 0l-7 7m7-7H3"
-                              ></path>
-                            </svg>
-                          </span>
-                          <span className="absolute flex items-center justify-center w-full h-full text-white transition-all duration-300 transform group-hover:translate-x-full ease">
-                            Buy Tickets
-                          </span>
-                          <span className="relative invisible">Buy Tickets</span>
-                        </Button>
+                        <div className="grid  grid-cols-1 md:grid-cols-2 gap-2">
+                          <Button onClick={() => handleBuyTickets(ticketQuantities[0], liveRaffles[0].account.raffleId)} className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500">
+                            <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
+                              <svg
+                                className="w-6 h-6"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2"
+                                  d="M14 5l7 7m0 0l-7 7m7-7H3"
+                                ></path>
+                              </svg>
+                            </span>
+                            <span className="absolute flex items-center justify-center w-full h-full text-white transition-all duration-300 transform group-hover:translate-x-full ease">
+                              Buy Tickets
+                            </span>
+                            <span className="relative invisible">Buy Tickets</span>
+                          </Button>
+                          <Button
+                            onClick={() => handleOpenModal(liveRaffles[0])}
+                            className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500"
+                          >
+                            Show Details
+                          </Button>
+                        </div>
                       </div>
                     </div>
+                    
                   </div>
                 </div>
               }
@@ -712,6 +727,8 @@ export default function Main() {
                     <div className="mt-12 w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-white">
                         {
                           liveRaffles.slice(1).map((liveRaffle, i) => {
+
+                            
                             let styleType;
 
                             if (i % 3 == 0) {
@@ -722,98 +739,94 @@ export default function Main() {
                               styleType = "from-blue-500 to-green-400";
                             }
                             return (
-                              <Card key={liveRaffle.account.raffleId} className={`bg-gradient-to-r ${styleType} text-white shadow-lg hover:shadow-2xl transition-all duration-300`}>
-                                <CardHeader>
-                                  <CardTitle>Lottery</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                      <span className="font-medium">Raffle Index: </span>
-                                      {Number(liveRaffle.account.raffleId)}
+                              <>
+                                <Card key={liveRaffle.account.raffleId} className={`bg-gradient-to-r ${styleType} text-white shadow-lg hover:shadow-2xl transition-all duration-300`}>
+                                  <CardHeader>
+                                    <CardTitle></CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                    <div className="grid gap-4 mb-2">
+                                      <div>
+                                        <span className="font-medium">Raffle Number: </span>
+                                        {Number(liveRaffle.account.raffleId)}
+                                      </div>
+                                      <div>
+                                        <span className="font-medium">Total Tickets: </span>
+                                        {liveRaffle.account.totalTicket} 
+                                      </div>
+                                      <div>
+                                        <span className="font-medium">Tickets Sold: </span>
+                                        {liveRaffle.account.purchasedTicket} 
+                                      </div>
+                                      <div>
+                                        <span className="font-medium">Prize Pool: </span>
+                                        ${liveRaffle.account.prize} USDC
+                                      </div>
                                     </div>
-                                    <div>
-                                      <span className="font-medium">Status: </span>
-                                      {Object.keys(liveRaffle.account.status).toString() == "active" ? "Live" : "Completed"}
+                                    <div className="grid gap-4">
+                                      <div>
+                                        <Label htmlFor="ticket-quantity">Tickets</Label>
+                                        <Input
+                                          className="w-full text-green-500"
+                                          value={ticketQuantities[i + 1]}
+                                          onChange={(e) =>
+                                            setTicketQuantities(() => ticketQuantities.map((item, index) => {
+                                              if (i + 1 == index) {
+                                                return parseInt(e.target.value)
+                                              }
+                  
+                                              return item;
+                                            }))
+                                          }
+                                          id="ticket-quantity"
+                                          max="69"
+                                          min="1"
+                                          type="number"
+                                        />
+                                      </div>
+                                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                        <span>Total Cost:</span>
+                                        <span>${(ticketQuantities[i + 1] * liveRaffle.account.ticketPrice).toFixed(2)} USDC</span>
+                                      </div>
+                                      <Button onClick={() => handleBuyTickets(ticketQuantities[i + 1], liveRaffle.account.raffleId)}
+                                        className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500"
+                                      >
+                                        <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
+                                          <svg
+                                            className="w-6 h-6"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                          >
+                                            <path
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                              strokeWidth="2"
+                                              d="M14 5l7 7m0 0l-7 7m7-7H3"
+                                            ></path>
+                                          </svg>
+                                        </span>
+                                        <span className="absolute flex items-center justify-center w-full h-full text-white transition-all duration-300 transform group-hover:translate-x-full ease">
+                                          Buy Tickets
+                                        </span>
+                                        <span className="relative invisible">
+                                          Buy Tickets
+                                        </span>
+                                      </Button>
+                                      <Button
+                                        onClick={() => handleOpenModal(liveRaffle)}
+                                        className="w-full px-4 py-2 mt-4 bg-blue-500 text-white rounded-md shadow-md hover:bg-blue-600 transition-all"
+                                      >
+                                        Show Details
+                                      </Button>
                                     </div>
-                                    <div>
-                                      <span className="font-medium">Ticket Price: </span>
-                                      ${liveRaffle.account.ticketPrice} USDC
-                                    </div>
-                                    <div>
-                                      <span className="font-medium">Total Tickets: </span>
-                                      {liveRaffle.account.totalTicket} 
-                                    </div>
-                                    <div>
-                                      <span className="font-medium">Tickets Sold: </span>
-                                      {liveRaffle.account.purchasedTicket} 
-                                    </div>
-                                    <div>
-                                      <span className="font-medium">Prize Pool: </span>
-                                      ${liveRaffle.account.prize} USDC
-                                    </div>
-                                    { 
-                                      liveRaffle.account.autoGenerate == 1 &&
-                                        <div>
-                                          <span className="font-medium">Next Lottery Size: </span>
-                                          ${Math.floor(liveRaffle.account.prize * liveRaffle.account.multiplier)} USDC
-                                        </div>
-                                    }
-                                  </div>
-                                  <div className="grid gap-4">
-                                    <div>
-                                      <Label htmlFor="ticket-quantity">Tickets</Label>
-                                      <Input
-                                        className="w-full text-green-500"
-                                        value={ticketQuantities[i + 1]}
-                                        onChange={(e) =>
-                                          setTicketQuantities(() => ticketQuantities.map((item, index) => {
-                                            if (i + 1 == index) {
-                                              return parseInt(e.target.value)
-                                            }
-                
-                                            return item;
-                                          }))
-                                        }
-                                        id="ticket-quantity"
-                                        max="69"
-                                        min="1"
-                                        type="number"
-                                      />
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                                      <span>Total Cost:</span>
-                                      <span>${(ticketQuantities[i + 1] * liveRaffle.account.ticketPrice).toFixed(2)} USDC</span>
-                                    </div>
-                                    <Button onClick={() => handleBuyTickets(ticketQuantities[i + 1], liveRaffle.account.raffleId)}
-                                      className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500"
-                                    >
-                                      <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
-                                        <svg
-                                          className="w-6 h-6"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          viewBox="0 0 24 24"
-                                          xmlns="http://www.w3.org/2000/svg"
-                                        >
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth="2"
-                                            d="M14 5l7 7m0 0l-7 7m7-7H3"
-                                          ></path>
-                                        </svg>
-                                      </span>
-                                      <span className="absolute flex items-center justify-center w-full h-full text-white transition-all duration-300 transform group-hover:translate-x-full ease">
-                                        Buy Tickets
-                                      </span>
-                                      <span className="relative invisible">
-                                        Buy Tickets
-                                      </span>
-                                    </Button>
-                                  </div>
-                                </CardContent>
-                              </Card>
+                                  </CardContent>
+                                  {/* Modal Component */}
+                                  {isOpen && <RaffleDetailsModal  setIsOpen={setIsOpen} liveRaffle={selectedRaffle} />}
+                                </Card>
+                              </>
+                             
                             );
                           })  
                         }        
@@ -823,16 +836,6 @@ export default function Main() {
               </div>
             </>
         }
-        <div className="mt-12 w-full max-w-screen-lg px-4">
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white p-6 rounded-lg">
-            <h2 className="text-2xl font-bold mb-4">Summary</h2>
-            <p>
-              This is the world's Biggest Lottery! Every time a smaller
-              lottery is completed, a larger lottery is created.
-              Eventually, we aim to be the World's Largest Raffle Lottery.
-            </p>
-          </div>
-        </div>
         <div className="mt-12 w-full max-w-screen-lg px-4">
           <div className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white p-6 rounded-lg">
             <h2 className="text-2xl font-bold mb-4">Referral</h2>
@@ -888,7 +891,7 @@ export default function Main() {
             </div>
           </div>
         </div>
-        <div className="mt-12 w-full max-w-screen-lg px-4">
+        {/* <div className="mt-12 w-full max-w-screen-lg px-4">
           <div className="bg-gradient-to-r from-red-500 to-yellow-500 text-white p-6 rounded-lg">
             <h2 className="text-2xl font-bold mb-4">My Tickets</h2>
             <Table>
@@ -928,8 +931,11 @@ export default function Main() {
               </TableBody>
             </Table>
           </div>
-        </div>
+        </div> */}
         <div className="mt-12 w-full max-w-screen-lg px-4">
+          {completedPools.length > 0 &&   <div className="flex justify-center items-center">
+            <h2 className="text-xl font-bold mb-4">Completed Raffles!</h2>
+          </div>}
           <div className="mt-12 w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-white">
           {
             completedPools.length > 0 ?
@@ -951,12 +957,13 @@ export default function Main() {
                 const dateString = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
                 
                 return (
-                  <Card key={completedPool.account.raffleId}  className={`bg-gradient-to-r ${styleType} text-white shadow-lg hover:shadow-2xl transition-all duration-300`}>
+                  <>
+                    <Card key={completedPool.account.raffleId}  className={`bg-gradient-to-r ${styleType} text-white shadow-lg hover:shadow-2xl transition-all duration-300`}>
                     <CardHeader>
                       <CardTitle>Lottery ({`${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`})</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-4">
                         <div>
                           <span className="font-medium">Winner:</span>
                           {completedPool.account.winner.toBase58().slice(0, 3)}...{completedPool.account.winner.toBase58().slice(-3)}
@@ -976,15 +983,15 @@ export default function Main() {
                         </div>
                       </div>
                     </CardContent>
-                  </Card>
+                    </Card>
+                  </>  
+                  
                 );
               }) :
               <>
-                <div></div>
                 <div className="flex justify-center items-center">
                   <h2 className="text-xl font-bold mb-4">No Completed Raffles!</h2>
                 </div>
-                <div></div>
               </>  
           }  
           </div>
