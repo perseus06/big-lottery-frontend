@@ -74,6 +74,8 @@ import {
 } from "@/lib/constants";
 
 import RaffleDetailsModal from "./components/raffleDetailsModal";
+import MyReferralModal from "./components/myReferralModal";
+import TicketPurchaseModal from "./components/ticketPurchaseModal";
 
 export default function Main() {
   const { connection } = useConnection();
@@ -93,6 +95,8 @@ export default function Main() {
   const [totalRaffles, setTotalRaffles] = useState<number>(0);
   const [biggestLottery, setBiggestLottery] = useState<number>(0);
   const [isOpen, setIsOpen] = useState(false);
+  const [isReferralOpen, setIsReferralOpen] = useState(false);
+  const [isBuyTicket, setIsBuyTicket] = useState(false);
   const [selectedRaffle, setSelectedRaffle] = useState(null); // State to track which raffle's modal is open
 
   useEffect(() => {
@@ -100,11 +104,13 @@ export default function Main() {
   }, [connected]);
 
   useEffect(() => {
-    (async () => {
+    let intervalId: NodeJS.Timeout;
+  
+    const fetchData = async () => {
       if (wallet) {
         try {
           setLoading(true);
-
+  
           let provider: Provider;
           try {
             provider = getProvider();
@@ -112,48 +118,46 @@ export default function Main() {
             provider = new AnchorProvider(connection, wallet, {});
             setProvider(provider);
           }
-
+  
           const program = new Program(IDL as Idl, PROGRAM_ID);
           setProgram(program);
-
-        
+  
           const [globalState, globalStateBump] = await PublicKey.findProgramAddress(
-            [
-              Buffer.from(GLOBAL_STATE_SEED)
-            ],
+            [Buffer.from(GLOBAL_STATE_SEED)],
             program.programId
           );
-
+  
           const globalStateData = await program.account.globalState.fetch(globalState);
           const totalRaffles = Number(globalStateData.totalRaffles);
           setTotalRaffles(totalRaffles);
-
+  
           const allPoolAccount = await program.account.pool.all();
-
           setPools(allPoolAccount);
-          let activeRaffles = allPoolAccount.filter(
-            (item: any) => Object.keys(item.account.status).toString() === "active"
+  
+          let activeRaffles = allPoolAccount.filter((item: any) =>
+            ["active", "processing"].includes(Object.keys(item.account.status).toString())
           );
-          // setLiveRaffles(activeRaffles);
           
-          setCompletedPool(allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() == "completed"));
-          setTicketQuantities(new Array(allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() == "active").length + 1).fill(1));
-          const biggestPrize = activeRaffles.reduce((max, item) => {
-            return item.account.prize > max ? item.account.prize : max;
-          }, 0);
-          setBiggestLottery(biggestPrize);
-          // Find the raffle with the biggest prize
-          const biggestRaffleIndex = activeRaffles.findIndex(
-            (item: any) => item.account.prize === biggestPrize
+          setCompletedPool(
+            allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() === "completed")
           );
-
-          if (biggestRaffleIndex !== -1) {
-            // Remove the raffle with the biggest prize from its current position
-            const [biggestRaffle] = activeRaffles.splice(biggestRaffleIndex, 1);
-            // Insert the raffle with the biggest prize at the beginning
-            activeRaffles = [biggestRaffle, ...activeRaffles];
-            setLiveRaffles(activeRaffles); // Update the state with the modified array
-          }
+  
+          setTicketQuantities(
+            new Array(
+              allPoolAccount.filter((item: any) =>
+                ["active", "processing"].includes(Object.keys(item.account.status).toString())
+              ).length + 1
+            ).fill(1)
+          );
+  
+          // Sort activeRaffles by prize in descending order
+          activeRaffles.sort((a: any, b: any) => b.account.prize - a.account.prize);
+  
+          const biggestPrize = activeRaffles[0]?.account.prize || 0;
+          setBiggestLottery(biggestPrize);
+  
+          // Move the biggest raffle to the beginning of the array
+          setLiveRaffles([activeRaffles[0], ...activeRaffles.slice(1)]);
           // set winnerInfo 
           // await handleWinnerInfo();
         } catch (error) {
@@ -162,19 +166,34 @@ export default function Main() {
           setLoading(false);
         }
       }
-    })();
+    };
+  
+    // Initial fetch
+    fetchData();
+  
+    // Set interval for fetching data every 1 or 2 minutes
+    intervalId = setInterval(fetchData, 2 * 60 * 1000); // 2 minutes (120,000 ms)
+  
+    // Clear the interval when the component is unmounted
+    return () => clearInterval(intervalId);
+  
   }, [wallet]);
+  
 
-  useEffect(() => {
-    if(wallet && totalRaffles > 0) {
-      // set my tickets per raffle
-      handleMyTickets();
-    }
-  }, [wallet, totalRaffles])
+  // useEffect(() => {
+  //   if(wallet && totalRaffles > 0) {
+  //     // set my tickets per raffle
+  //     handleMyTickets();
+  //   }
+  // }, [wallet, totalRaffles])
 
   const handleOpenModal = (raffle: any) => {
     setSelectedRaffle(raffle);
     setIsOpen(true); // Open the modal
+  };
+
+  const handleOpenReferralModal = () => {
+    setIsReferralOpen(true); // Open the modal
   };
 
   const handleMyTickets = async() => {
@@ -411,10 +430,31 @@ export default function Main() {
         console.log("Your transaction signature for buying tickets without referral:", signature);
 
         const allPoolAccount = await program.account.pool.all();
+
         setPools(allPoolAccount);
-        setLiveRaffles(allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() == "active"));
+        let activeRaffles = allPoolAccount.filter(
+          (item: any) => ["active", "processing"].includes(Object.keys(item.account.status).toString())
+        );
+        // setLiveRaffles(activeRaffles);
+        
         setCompletedPool(allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() == "completed"));
-        await handleMyTickets();
+        setTicketQuantities(
+          new Array(
+            allPoolAccount.filter(
+              (item: any) => ["active", "processing"].includes(Object.keys(item.account.status).toString())
+            ).length + 1
+          ).fill(1)
+        );
+        // Sort activeRaffles by prize in descending order
+        activeRaffles.sort((a: any, b: any) => b.account.prize - a.account.prize);
+
+        const biggestPrize = activeRaffles[0]?.account.prize || 0;
+        setBiggestLottery(biggestPrize);
+
+        // Move the biggest raffle to the beginning of the array
+        setLiveRaffles([activeRaffles[0], ...activeRaffles.slice(1)]);
+        // await handleMyTickets();
+        setIsBuyTicket(true);
       }
     } catch (error) {
       console.log("Error while buying tickets:", error);
@@ -435,14 +475,14 @@ export default function Main() {
       key="1"
       className="flex flex-col items-center justify-center bg-gradient-to-r from-green-400 to-blue-500 text-white min-h-screen p-4 relative"
     >
-      {/* <video
+      <video
         autoPlay
         loop
         muted
         className="absolute top-0 left-0 w-full h-full object-cover opacity-15 z-0"
       >
         <source src="/gold.mp4" type="video/mp4" />
-      </video> */}
+      </video>
       <div className="relative z-10 w-full md:w-auto">
         <header className="md:flex items-center w-full max-w-screen-xl">
           <div className="flex items-center space-x-2">
@@ -487,26 +527,26 @@ export default function Main() {
                   <div className="grid grid-cols-1">
                     <div className="bg-gradient-to-r from-teal-500 to-purple-500 text-white p-8 rounded-lg shadow-xl">
                       <div className="mt-6 flex justify-center items-center mb-6">
-                        <h4 className="text-[24px] md:text-[48px] leading-none font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-yellow-500 to-green-500 animate-pulse drop-shadow-lg shadow-white">
-                          ${biggestLottery}
+                        <h4 className="text-[48px] md:text-[64px] leading-none font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-yellow-500 to-green-500 animate-pulse drop-shadow-lg shadow-white">
+                          ${biggestLottery.toLocaleString()}
                         </h4>
                       </div>
                       <div className="grid grid-cols-2 gap-2 mb-2 text-center">
                         <div>
                           <span className="font-medium">Raffle Number: </span>
-                          {Number(liveRaffles[0].account.raffleId)}
+                          {Number(liveRaffles[0].account.raffleId).toLocaleString()}
                         </div>
                         <div>
                           <span className="font-medium">Total Tickets: </span>
-                          {liveRaffles[0].account.totalTicket} 
+                          {liveRaffles[0].account.totalTicket.toLocaleString()} 
                         </div>
                         <div>
                           <span className="font-medium">Tickets Sold: </span>
-                          {liveRaffles[0].account.purchasedTicket} 
+                          {liveRaffles[0].account.purchasedTicket.toLocaleString()} 
                         </div>
                         <div>
                           <span className="font-medium">Prize pool: </span>
-                          ${liveRaffles[0].account.prize} USDC
+                          ${liveRaffles[0].account.prize.toLocaleString()} USDC
                         </div>
                       </div>
                       {/* <div className="bg-gradient-to-l from-teal-500 to-purple-500 text-white-500 p-6 rounded-lg"> */}
@@ -686,7 +726,7 @@ export default function Main() {
                           <span>${(ticketQuantities[0] * liveRaffles[0].account.ticketPrice).toFixed(2)} USDC</span>
                         </div>
                         <div className="grid  grid-cols-1 md:grid-cols-2 gap-2">
-                          <Button onClick={() => handleBuyTickets(ticketQuantities[0], liveRaffles[0].account.raffleId)} className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500">
+                          {Object.keys(liveRaffles[0].account.status).toString() == "active" && <Button onClick={() => handleBuyTickets(ticketQuantities[0], liveRaffles[0].account.raffleId)} className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500">
                             <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
                               <svg
                                 className="w-6 h-6"
@@ -707,7 +747,7 @@ export default function Main() {
                               Buy Tickets
                             </span>
                             <span className="relative invisible">Buy Tickets</span>
-                          </Button>
+                          </Button>}
                           <Button
                             onClick={() => handleOpenModal(liveRaffles[0])}
                             className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500"
@@ -748,19 +788,19 @@ export default function Main() {
                                     <div className="grid gap-4 mb-2">
                                       <div>
                                         <span className="font-medium">Raffle Number: </span>
-                                        {Number(liveRaffle.account.raffleId)}
+                                        {Number(liveRaffle.account.raffleId).toLocaleString()}
                                       </div>
                                       <div>
                                         <span className="font-medium">Total Tickets: </span>
-                                        {liveRaffle.account.totalTicket} 
+                                        {liveRaffle.account.totalTicket.toLocaleString()} 
                                       </div>
                                       <div>
                                         <span className="font-medium">Tickets Sold: </span>
-                                        {liveRaffle.account.purchasedTicket} 
+                                        {liveRaffle.account.purchasedTicket.toLocaleString()} 
                                       </div>
                                       <div>
                                         <span className="font-medium">Prize Pool: </span>
-                                        ${liveRaffle.account.prize} USDC
+                                        ${liveRaffle.account.prize.toLocaleString()} USDC
                                       </div>
                                     </div>
                                     <div className="grid gap-4">
@@ -788,7 +828,7 @@ export default function Main() {
                                         <span>Total Cost:</span>
                                         <span>${(ticketQuantities[i + 1] * liveRaffle.account.ticketPrice).toFixed(2)} USDC</span>
                                       </div>
-                                      <Button onClick={() => handleBuyTickets(ticketQuantities[i + 1], liveRaffle.account.raffleId)}
+                                      {Object.keys(liveRaffle.account.status).toString() == "active" && <Button onClick={() => handleBuyTickets(ticketQuantities[i + 1], liveRaffle.account.raffleId)}
                                         className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500"
                                       >
                                         <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
@@ -813,7 +853,7 @@ export default function Main() {
                                         <span className="relative invisible">
                                           Buy Tickets
                                         </span>
-                                      </Button>
+                                      </Button>}
                                       <Button
                                         onClick={() => handleOpenModal(liveRaffle)}
                                         className="w-full px-4 py-2 mt-4 bg-blue-500 text-white rounded-md shadow-md hover:bg-blue-600 transition-all"
@@ -836,102 +876,21 @@ export default function Main() {
               </div>
             </>
         }
-        <div className="mt-12 w-full max-w-screen-lg px-4">
-          <div className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white p-6 rounded-lg">
-            <h2 className="text-2xl font-bold mb-4">My Referral Link</h2>
-            <div className="grid gap-4">
-              <div>
-                <div className="flex items-center space-x-2">
-                  <Input
-                    className="flex-1 text-green-500"
-                    value={
-                      isConnected && publicKey
-                        ? `https://rafflebags.com?ref=${publicKey.toBase58()}`
-                        : ""
-                    }
-                    readOnly
-                  />
-                  <Button
-                    className="relative inline-flex items-center justify-center p-2 px-4 py-2 overflow-hidden font-medium text-white transition duration-300 ease-out bg-gradient-to-r from-green-400 to-blue-500 rounded-full shadow-md group hover:from-blue-500 hover:to-green-400"
-                    onClick={() => {
-                      if (isConnected && publicKey) {
-                        navigator.clipboard.writeText(
-                          `https://rafflebags.com?ref=${publicKey.toBase58()}`
-                        );
-                      }
-                    }}
-                  >
-                    <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-gradient-to-r from-blue-500 to-green-400 group-hover:translate-x-0 ease">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
-                        ></path>
-                      </svg>
-                    </span>
-                    <span className="absolute flex items-center justify-center w-full h-full text-white transition-all duration-300 transform group-hover:translate-x-full ease">
-                      Copy
-                    </span>
-                    <span className="relative invisible">Copy</span>
-                  </Button>
-                </div>
-              </div>
-              <div>
-                <span className="font-medium">Referral Bonus: </span>
-                You gain 5% on each ticket purchase.
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* <div className="mt-12 w-full max-w-screen-lg px-4">
-          <div className="bg-gradient-to-r from-red-500 to-yellow-500 text-white p-6 rounded-lg">
-            <h2 className="text-2xl font-bold mb-4">My Tickets</h2>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-1xl font-bold text-white">
-                    Raffle #
-                  </TableHead>
-                  <TableHead className="text-1xl font-bold text-white">
-                    Ticket(From Index)
-                  </TableHead>
-                  <TableHead className="text-1xl font-bold text-white">
-                    Ticket(To Index)
-                  </TableHead>
-                  <TableHead className="text-1xl font-bold text-white">
-                    Purchased Tickets
-                  </TableHead>
-                  <TableHead className="text-1xl font-bold text-white">
-                    Status
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {myTitckets.length>0 ? myTitckets.map((myTicket, i) => {
-                  return(
-                    <>
-                      <TableRow key={i}>
-                        <TableCell>{myTicket.raffleId}</TableCell>
-                        <TableCell>{myTicket.fromIndex}</TableCell>
-                        <TableCell>{myTicket.toIndex}</TableCell>
-                        <TableCell>{myTicket.purchasedTickets}</TableCell>
-                        <TableCell>{myTicket.status}</TableCell>
-                      </TableRow>
-                    </>
-                  )
-                }):<></>}
-              </TableBody>
-            </Table>
-          </div>
-        </div> */}
+        {
+          isBuyTicket && <TicketPurchaseModal setIsBuyTicket={setIsBuyTicket} />
+        }
+        {
+        isConnected && <Button
+            onClick={() => handleOpenReferralModal()}
+            className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full shadow-lg group hover:bg-pink-500"
+          >
+            My Referral Link
+          </Button> 
+        }
+        {
+        isReferralOpen && publicKey &&
+          <MyReferralModal  setIsReferralOpen={setIsReferralOpen} pubkey={publicKey?.toBase58()} />
+        }
         <div className="mt-12 w-full max-w-screen-lg px-4">
           {completedPools.length > 0 &&   <div className="flex justify-center items-center">
             <h2 className="text-xl font-bold mb-4">Completed Raffles!</h2>
@@ -970,11 +929,11 @@ export default function Main() {
                         </div>
                         <div>
                           <span className="font-medium">Winning Ticket:</span>
-                          {completedPool.account.winnerTicketNumber}
+                          {completedPool.account.winnerTicketNumber.toLocaleString()}
                         </div>
                         <div>
                           <span className="font-medium">Amount Won:</span>
-                          ${completedPool.account.prize} USDC
+                          ${completedPool.account.prize.toLocaleString()} USDC
                         </div>
                         <div>
                           <span className="font-medium">Timestamp:</span>

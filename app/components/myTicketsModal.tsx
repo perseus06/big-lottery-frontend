@@ -48,11 +48,11 @@ export default function MyTickets({ setTicketIsOpen, myTickets }: MyTicketsProps
       {/* Centered modal */}
       <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
         <div
-          className={`w-80 md:w-full h-96 bg-gradient-to-r from-red-500 to-yellow-500 rounded-lg shadow-lg`}
+          className={`w-80 md:w-full h-96 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg shadow-lg`}
         >
           {/* Modal header */}
           <div className="rounded-t-lg text-left">
-            <h5 className="m-0 p-2 text-gray-800 font-bold text-lg">
+            <h5 className="m-0 p-2 text-white font-bold text-lg">
               My Tickets
             </h5>
           </div>
@@ -65,7 +65,7 @@ export default function MyTickets({ setTicketIsOpen, myTickets }: MyTicketsProps
           </button>
 
           {/* Modal content with vertical scroll */}
-          <div className="p-4 text-sm text-gray-800 text-left grid gap-2 max-h-64">
+          <div className="p-4 text-sm text-white text-left grid gap-2 max-h-64 overflow-y-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -90,10 +90,10 @@ export default function MyTickets({ setTicketIsOpen, myTickets }: MyTicketsProps
                 {currentTickets.length > 0 ? (
                   currentTickets.map((myTicket, i) => (
                     <TableRow key={i}>
-                      <TableCell>{myTicket.raffleId}</TableCell>
-                      <TableCell>{myTicket.fromIndex}</TableCell>
-                      <TableCell>{myTicket.toIndex}</TableCell>
-                      <TableCell>{myTicket.purchasedTickets}</TableCell>
+                      <TableCell>{myTicket.raffleId.toLocaleString()}</TableCell>
+                      <TableCell>{myTicket.fromIndex.toLocaleString()}</TableCell>
+                      <TableCell>{myTicket.toIndex.toLocaleString()}</TableCell>
+                      <TableCell>{myTicket.purchasedTickets.toLocaleString()}</TableCell>
                       <TableCell>{myTicket.status}</TableCell>
                     </TableRow>
                   ))
@@ -113,8 +113,8 @@ export default function MyTickets({ setTicketIsOpen, myTickets }: MyTicketsProps
             >
               Previous
             </button>
-            <span className="mx-2 text-gray-700">
-              Page {currentPage} of {totalPages}
+            <span className="mx-2 text-white">
+              Page {currentPage.toLocaleString()} of {totalPages.toLocaleString()}
             </span>
             <button
               className="bg-gray-300 text-gray-700 font-medium py-1 px-3 rounded-lg text-sm shadow hover:bg-gray-400 transition-all"

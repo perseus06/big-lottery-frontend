@@ -40,7 +40,7 @@ export default function RaffleDetailsModal({ setIsOpen, liveRaffle }: RaffleDeta
           <div className="p-4 text-sm text-gray-800 text-left grid gap-2">
             <div>
               <span className="font-medium">Raffle Number: </span>
-              {Number(liveRaffle.account.raffleId)}
+              {Number(liveRaffle.account.raffleId).toLocaleString()}
             </div>
             <div>
               <span className="font-medium">Status: </span>
@@ -48,11 +48,11 @@ export default function RaffleDetailsModal({ setIsOpen, liveRaffle }: RaffleDeta
             </div>
             <div>
               <span className="font-medium">Ticket Price: </span>
-              ${liveRaffle.account.ticketPrice} USDC
+              ${liveRaffle.account.ticketPrice.toLocaleString()} USDC
             </div>
             <div>
               <span className="font-medium">Total Tickets: </span>
-              {liveRaffle.account.totalTicket} 
+              {liveRaffle.account.totalTicket.toLocaleString()} 
             </div>
             <div>
               <span className="font-medium">Tickets Sold: </span>
@@ -60,13 +60,13 @@ export default function RaffleDetailsModal({ setIsOpen, liveRaffle }: RaffleDeta
             </div>
             <div>
               <span className="font-medium">Prize Pool: </span>
-              ${liveRaffle.account.prize} USDC
+              ${liveRaffle.account.prize.toLocaleString()} USDC
             </div>
             { 
               liveRaffle.account.autoGenerate == 1 &&
                 <div>
                   <span className="font-medium">Next Lottery Size: </span>
-                  ${Math.floor(liveRaffle.account.prize * liveRaffle.account.multiplier)} USDC
+                  ${Math.floor(liveRaffle.account.prize * liveRaffle.account.multiplier).toLocaleString()} USDC
                 </div>
             }
           </div>
