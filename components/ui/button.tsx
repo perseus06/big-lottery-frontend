@@ -30,7 +30,8 @@ import {
 import { cn } from "@/lib/utils";
 import IDL from "@/lib/idl/solana_usdc_raffle.json";
 import { PublicKey } from "@solana/web3.js";
-import MyTicketsModal from "../../app/components/myTicketsModal";
+import MyTicketsModal from "@/app/components/myTicketsModal";
+import MyReferralModal from "@/app/components/myReferralModal";
 import {Ticket} from '../../lib/interface';
 
 // Default styles that can be overridden by your app
@@ -45,6 +46,7 @@ export const CustomWalletButton = () => {
   const wallet = useAnchorWallet();
   const { connection } = useConnection();
   const [myTickets, setMyTickets] = useState<Ticket[]>([]);
+  const [isReferralOpen, setIsReferralOpen] = useState(false);
 
   const handleClick = () => {
     if (!publicKey) {
@@ -134,6 +136,11 @@ export const CustomWalletButton = () => {
     }
   }
 
+  const handleOpenReferralModal = () => {
+    setIsReferralOpen(true); // Open the modal
+  };
+
+
   const truncatedAddress = publicKey
     ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
     : "Connect Wallet";
@@ -141,6 +148,27 @@ export const CustomWalletButton = () => {
   return (
     <>
       <div className="flex space-x-4">
+        <button
+          onClick={() => handleOpenReferralModal()}
+          className="relative inline-flex items-center justify-center p-8 px-12 py-4 overflow-hidden text-1xl font-medium text-white transition duration-300 ease-out bg-gradient-to-r from-teal-500 to-purple-500 rounded-full shadow-md group"
+          title="Show my referral links"
+          >
+          <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-gradient-to-r from-teal-500 to-purple-500 group-hover:translate-x-0 ease">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="w-6 h-6"
+            >
+              <path d="M10.59 13.41a1.999 1.999 0 010-2.82l3.18-3.18a1.999 1.999 0 112.82 2.82l-1.77 1.77a.75.75 0 101.06 1.06l1.77-1.77a3.5 3.5 0 00-4.95-4.95l-3.18 3.18a3.5 3.5 0 004.95 4.95l1.77-1.77a.75.75 0 00-1.06-1.06l-1.77 1.77a1.999 1.999 0 01-2.82 0z" />
+              <path d="M13.41 10.59a1.999 1.999 0 010 2.82l-3.18 3.18a1.999 1.999 0 11-2.82-2.82l1.77-1.77a.75.75 0 10-1.06-1.06l-1.77 1.77a3.5 3.5 0 104.95 4.95l3.18-3.18a3.5 3.5 0 00-4.95-4.95l-1.77 1.77a.75.75 0 001.06 1.06l1.77-1.77a1.999 1.999 0 012.82 0z" />
+            </svg>
+          </span>
+          <span className="absolute flex items-center justify-center w-full h-full text-white transition-all duration-300 transform group-hover:translate-x-full ease">
+            Referral Link
+          </span>
+          <span className="relative invisible">Referral Link</span>
+        </button> 
         <button
           className="relative inline-flex items-center justify-center p-8 px-12 py-4 overflow-hidden text-1xl font-medium text-white transition duration-300 ease-out bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full shadow-md group hover:from-orange-500 hover:to-yellow-400"
           onClick={showMyTickets}
@@ -170,6 +198,9 @@ export const CustomWalletButton = () => {
           {truncatedAddress}
         </button>
       </div>
+      {isReferralOpen && publicKey &&
+          <MyReferralModal  setIsReferralOpen={setIsReferralOpen} pubkey={publicKey?.toBase58()} />
+      }
       {ticketIsOpen && <MyTicketsModal  setTicketIsOpen={setTicketIsOpen} myTickets={myTickets} />}
 
       {showModal && (

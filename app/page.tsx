@@ -95,7 +95,6 @@ export default function Main() {
   const [totalRaffles, setTotalRaffles] = useState<number>(0);
   const [biggestLottery, setBiggestLottery] = useState<number>(0);
   const [isOpen, setIsOpen] = useState(false);
-  const [isReferralOpen, setIsReferralOpen] = useState(false);
   const [isBuyTicket, setIsBuyTicket] = useState(false);
   const [selectedRaffle, setSelectedRaffle] = useState(null); // State to track which raffle's modal is open
 
@@ -178,132 +177,11 @@ export default function Main() {
     return () => clearInterval(intervalId);
   
   }, [wallet]);
-  
-
-  // useEffect(() => {
-  //   if(wallet && totalRaffles > 0) {
-  //     // set my tickets per raffle
-  //     handleMyTickets();
-  //   }
-  // }, [wallet, totalRaffles])
-
+ 
   const handleOpenModal = (raffle: any) => {
     setSelectedRaffle(raffle);
     setIsOpen(true); // Open the modal
   };
-
-  const handleOpenReferralModal = () => {
-    setIsReferralOpen(true); // Open the modal
-  };
-
-  const handleMyTickets = async() => {
-    try {
-      if (wallet) {
-        let provider: Provider;
-        try {
-          provider = getProvider();
-        } catch {
-          provider = new AnchorProvider(connection, wallet, {});
-          setProvider(provider);
-        }
-
-        const program = new Program(IDL as Idl, PROGRAM_ID);
-        
-        if(totalRaffles > 0) {
-          let tickets = [];
-          for(let id = 1; id<=totalRaffles; id++) {
-            const [pool, _] = await PublicKey.findProgramAddress(
-              [
-                Buffer.from(POOL_SEED),
-                new BN(id).toArrayLike(Buffer,'le',4)
-              ],
-              program.programId
-            );
-            const poolData = await program.account.pool.fetch(pool);
-            for(let i = 1; i<= Number(poolData.totalBuyers); i++) {
-              const buyerIndex = i;
-              const [userInfo, _] = await PublicKey.findProgramAddress(
-                [
-                  Buffer.from(USER_INFO_SEED),
-                  new BN(id).toArrayLike(Buffer,'le', 4),
-                  new BN(buyerIndex).toArrayLike(Buffer,'le', 4)
-                ],
-                program.programId
-              );
-              const userData = await program.account.userInfo.fetch(userInfo);
-              if(userData.buyer.toString() ==  wallet.publicKey.toString()) {
-                const fromIndex = Number(userData.fromIndex);
-                const toIndex = Number(userData.toIndex);
-                const purchasedTickets = Number(userData.purchasedTicket)
-                tickets.push({
-                  "raffleId":Number(poolData.raffleId),
-                  "fromIndex": fromIndex,
-                  "toIndex": toIndex,
-                  "purchasedTickets": purchasedTickets,
-                  "status": Object.keys(poolData.status).toString()
-                })
-              }
-            }
-          }
-        
-          setMyTickets(tickets);
-        }
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
-  const handleWinnerInfo = async() => {
-    try {
-      if (wallet) {
-        let provider: Provider;
-        try {
-          provider = getProvider();
-        } catch {
-          provider = new AnchorProvider(connection, wallet, {});
-          setProvider(provider);
-        }
-
-        const program = new Program(IDL as Idl, PROGRAM_ID);
-        const [pool, poolBump] = await PublicKey.findProgramAddress(
-          [
-          Buffer.from(POOL_SEED)
-          ],
-          program.programId
-        );
-
-        const poolData = await program.account.pool.fetch(pool);
-        const currentRaffleId = Number(poolData.raffleId);
-        const status = Object.keys(poolData.status).toString();
-        let winnerRaffleId = 0;
-
-        if(status == "active" || status == "processing") {
-          winnerRaffleId = currentRaffleId - 1;
-        } else {
-          winnerRaffleId = currentRaffleId;
-        }
-        const winnerIndex = Number(poolData.winnerIndex);
-        if(winnerIndex == 0) {
-          console.log("there is no winner");
-          return;
-        }
-
-        const [userInfo, _] = await PublicKey.findProgramAddress(
-          [
-            Buffer.from(USER_INFO_SEED),
-            new BN(winnerRaffleId).toArrayLike(Buffer,'le', 4),
-            new BN(winnerIndex).toArrayLike(Buffer,'le', 4)
-          ],
-          program.programId
-        );
-        const userData = await program.account.userInfo.fetch(userInfo);
-        setWinnerInfo(userData);
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  }
 
   const handleBuyTickets = async (totalTicket: number, raffleId: number) => {
     try {
@@ -327,23 +205,6 @@ export default function Main() {
         const poolData = await program.account.pool.fetch(pool);
 
         let buyerIndex = Number(poolData.totalBuyers) + 1;
-
-        while(true) {
-          try {
-            const [userInfo, userInfoBump] = await PublicKey.findProgramAddress(
-              [
-                Buffer.from(USER_INFO_SEED),
-                new BN(raffleId).toArrayLike(Buffer,'le',4),
-                new BN(buyerIndex).toArrayLike(Buffer,'le',4)
-              ],
-              program.programId
-            );
-            await program.account.userInfo.fetch(userInfo);
-            buyerIndex += 1;
-          } catch (error) {
-            break;
-          }
-        }
 
         const [poolNativeAccount, _poolNativeAccountbump] = await PublicKey.findProgramAddress(
           [
@@ -456,19 +317,13 @@ export default function Main() {
         // await handleMyTickets();
         setIsBuyTicket(true);
       }
-    } catch (error) {
-      console.log("Error while buying tickets:", error);
+    } catch (error:any) {
+      console.log("error->", error);
+      if(error.message.includes("already in use")) {
+        await handleBuyTickets(totalTicket, raffleId);
+      }
     }
   };
-
-  const pad = (num: string | number) => ("0" + num).slice(-2); // or use padStart
-  const getTimeFromDate = (timestamp: number) => {
-    const date = new Date(timestamp * 1000);
-    let hours = date.getHours(),
-      minutes = date.getMinutes(),
-      seconds = date.getSeconds();
-    return pad(hours) + ":" + pad(minutes) + ":" + pad(seconds)
-  }
 
   return (
     <div
@@ -479,7 +334,7 @@ export default function Main() {
         autoPlay
         loop
         muted
-        className="absolute top-0 left-0 w-full h-full object-cover opacity-15 z-0"
+        className="absolute top-0 left-0 w-0 sm:w-full h-full object-cover opacity-15 z-0"
       >
         <source src="/gold.mp4" type="video/mp4" />
       </video>
@@ -726,7 +581,7 @@ export default function Main() {
                           <span>${(ticketQuantities[0] * liveRaffles[0].account.ticketPrice).toFixed(2)} USDC</span>
                         </div>
                         <div className="grid  grid-cols-1 md:grid-cols-2 gap-2">
-                          {Object.keys(liveRaffles[0].account.status).toString() == "active" && <Button onClick={() => handleBuyTickets(ticketQuantities[0], liveRaffles[0].account.raffleId)} className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500">
+                          {Object.keys(liveRaffles[0].account.status).toString() == "active" ? <Button onClick={() => handleBuyTickets(ticketQuantities[0], liveRaffles[0].account.raffleId)} className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500">
                             <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
                               <svg
                                 className="w-6 h-6"
@@ -747,6 +602,10 @@ export default function Main() {
                               Buy Tickets
                             </span>
                             <span className="relative invisible">Buy Tickets</span>
+                          </Button>: <Button
+                            className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500"
+                          >
+                            SELECTING WINNER
                           </Button>}
                           <Button
                             onClick={() => handleOpenModal(liveRaffles[0])}
@@ -828,7 +687,7 @@ export default function Main() {
                                         <span>Total Cost:</span>
                                         <span>${(ticketQuantities[i + 1] * liveRaffle.account.ticketPrice).toFixed(2)} USDC</span>
                                       </div>
-                                      {Object.keys(liveRaffle.account.status).toString() == "active" && <Button onClick={() => handleBuyTickets(ticketQuantities[i + 1], liveRaffle.account.raffleId)}
+                                      {Object.keys(liveRaffle.account.status).toString() == "active" ? <Button onClick={() => handleBuyTickets(ticketQuantities[i + 1], liveRaffle.account.raffleId)}
                                         className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500"
                                       >
                                         <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
@@ -853,6 +712,10 @@ export default function Main() {
                                         <span className="relative invisible">
                                           Buy Tickets
                                         </span>
+                                      </Button>:<Button
+                                        className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500"
+                                      >
+                                        Processing
                                       </Button>}
                                       <Button
                                         onClick={() => handleOpenModal(liveRaffle)}
@@ -878,18 +741,6 @@ export default function Main() {
         }
         {
           isBuyTicket && <TicketPurchaseModal setIsBuyTicket={setIsBuyTicket} />
-        }
-        {
-        isConnected && <Button
-            onClick={() => handleOpenReferralModal()}
-            className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full shadow-lg group hover:bg-pink-500"
-          >
-            My Referral Link
-          </Button> 
-        }
-        {
-        isReferralOpen && publicKey &&
-          <MyReferralModal  setIsReferralOpen={setIsReferralOpen} pubkey={publicKey?.toBase58()} />
         }
         <div className="mt-12 w-full max-w-screen-lg px-4">
           {completedPools.length > 0 &&   <div className="flex justify-center items-center">
