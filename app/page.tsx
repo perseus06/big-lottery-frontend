@@ -603,7 +603,7 @@ export default function Main() {
                             </span>
                             <span className="relative invisible">Buy Tickets</span>
                           </Button>: <Button
-                            className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500"
+                            className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-black transition duration-300 ease-out bg-slate-300 rounded-full shadow-lg group hover:bg-pink-500" disabled={true}
                           >
                             SELECTING WINNER
                           </Button>}
@@ -713,9 +713,9 @@ export default function Main() {
                                           Buy Tickets
                                         </span>
                                       </Button>:<Button
-                                        className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500"
+                                        className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-black transition duration-300 ease-out bg-slate-300 rounded-full shadow-lg group hover:bg-pink-500" disabled={true}
                                       >
-                                        Processing
+                                        SELECTING WINNER
                                       </Button>}
                                       <Button
                                         onClick={() => handleOpenModal(liveRaffle)}
