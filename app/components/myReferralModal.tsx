@@ -46,7 +46,7 @@ export default function MyReferralModal({ setIsReferralOpen, pubkey }: MyReferra
                         className="flex-1 text-green-500"
                         value={
                           pubkey
-                            ? `https://rafflebags.com?ref=${pubkey}`
+                            ? `https://big-lottery.vercel.app/?ref=${pubkey}`
                             : ""
                         }
                         readOnly
@@ -56,7 +56,7 @@ export default function MyReferralModal({ setIsReferralOpen, pubkey }: MyReferra
                         onClick={() => {
                           if (pubkey) {
                             navigator.clipboard.writeText(
-                              `https://rafflebags.com?ref=${pubkey}`
+                              `https://big-lottery.vercel.app/?ref=${pubkey}`
                             );
                           }
                         }}
