@@ -379,7 +379,7 @@ export default function Main() {
         autoPlay
         loop
         muted
-        className="absolute top-0 left-0 w-0 sm:w-full h-full object-cover opacity-15 z-0 sm:block hidden"
+        className="absolute top-0 left-0 w-full h-full object-cover opacity-15 z-0 video-element"
       >
         <source src="/gold.mp4" type="video/mp4" />
       </video>
