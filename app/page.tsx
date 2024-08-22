@@ -37,6 +37,7 @@ import {
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getAssociatedTokenAddressSync,
+  createAssociatedTokenAccountInstruction,
 } from "@solana/spl-token";
 import {
   PhantomWalletAdapter,
@@ -76,6 +77,7 @@ import {
 import RaffleDetailsModal from "./components/raffleDetailsModal";
 import MyReferralModal from "./components/myReferralModal";
 import TicketPurchaseModal from "./components/ticketPurchaseModal";
+import { useSearchParams } from 'next/navigation'
 
 export default function Main() {
   const { connection } = useConnection();
@@ -97,6 +99,9 @@ export default function Main() {
   const [isOpen, setIsOpen] = useState(false);
   const [isBuyTicket, setIsBuyTicket] = useState(false);
   const [selectedRaffle, setSelectedRaffle] = useState(null); // State to track which raffle's modal is open
+  const searchParams = useSearchParams()
+ 
+  const referral = searchParams.get('ref');
 
   useEffect(() => {
     setIsConnected(connected);
@@ -233,10 +238,36 @@ export default function Main() {
           ADMIN_ADDRESS
         );
 
-        const referralAta = getAssociatedTokenAddressSync(
-          PAYTOKEN_MINT,
-          ADMIN_ADDRESS
-        );
+        let referralAta = null;
+
+        let transaction = new Transaction();
+
+        if(referral === null) {
+          referralAta = getAssociatedTokenAddressSync(
+            PAYTOKEN_MINT,
+            ADMIN_ADDRESS
+          );
+        } else {
+          referralAta = getAssociatedTokenAddressSync(
+            PAYTOKEN_MINT,
+            new PublicKey(referral)
+          );
+          // Check if the associated token account exists
+          const referralAtaInfo = await provider.connection.getAccountInfo(referralAta);
+          if (!referralAtaInfo) {
+        
+            transaction.add(
+              createAssociatedTokenAccountInstruction(
+                  wallet.publicKey,
+                  referralAta,
+                  new PublicKey(referral),
+                  PAYTOKEN_MINT,
+                  TOKEN_PROGRAM_ID,
+                  ASSOCIATED_TOKEN_PROGRAM_ID
+              )
+            );
+          }
+        }
         
         const [poolAta, poolAtaBump] = await PublicKey.findProgramAddress(
           [
@@ -259,7 +290,7 @@ export default function Main() {
         const accountFeeSol = Number(poolData.accountFee) * totalTicket / Number(poolData.totalTicket);
 
         // Call the buy_tickets function
-        const signature = await program.rpc.buyTickets(
+        const buyTx = program.instruction.buyTickets(
           [...poolData.newRandomAddress.toBuffer()],
           raffleId,
           buyerIndex,
@@ -273,11 +304,11 @@ export default function Main() {
               payTokenMint:PAYTOKEN_MINT,
               buyer: wallet.publicKey,
               userInfo,
-              referral: program.programId,
+              referral: referral!==null ? new PublicKey(referral) : program.programId,
               buyerAta,
               adminAta,
               poolAta,
-              referralAta: program.programId,
+              referralAta: referral!==null ? referralAta : program.programId,
               treasury,
               random,
               config:networkStateAccountAddress(),
@@ -289,9 +320,21 @@ export default function Main() {
           }
         );
 
-        console.log("Your transaction signature for buying tickets without referral:", signature);
-        const userInfoData = await program.account.userInfo.fetch(userInfo);
-        console.log("user information after buy tickets ->",userInfoData);
+        transaction.add(buyTx);
+        // Set the fee payer to the sender's public key
+        transaction.feePayer = wallet.publicKey;;
+        // Get the recent blockhash
+        const recentBlockhash = (await connection.getRecentBlockhash()).blockhash;
+        // Sign the transaction
+        transaction.recentBlockhash = recentBlockhash;
+        // transaction.partialSign(mint);
+        const signedTransaction = await wallet.signTransaction(transaction);
+
+        // Send the signed transaction
+        const tx = await connection.sendRawTransaction(signedTransaction.serialize());
+        console.log("tx->", tx);
+
+      
 
         const allPoolAccount = await program.account.pool.all();
 
@@ -319,12 +362,11 @@ export default function Main() {
         setLiveRaffles([activeRaffles[0], ...activeRaffles.slice(1)]);
         // await handleMyTickets();
         setIsBuyTicket(true);
+        const userInfoData = await program.account.userInfo.fetch(userInfo);
+        console.log("user information after buy tickets ->",userInfoData);
       }
     } catch (error:any) {
       console.log("error->", error);
-      if(error.message.includes("already in use")) {
-        await handleBuyTickets(totalTicket, raffleId);
-      }
     }
   };
 
