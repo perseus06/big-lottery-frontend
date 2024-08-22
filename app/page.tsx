@@ -177,7 +177,7 @@ export default function Main() {
     fetchData();
   
     // Set interval for fetching data every 1 or 2 minutes
-    intervalId = setInterval(fetchData, 2 * 60 * 1000); // 2 minutes (120,000 ms)
+    intervalId = setInterval(fetchData, 30 * 1000); // 2 minutes (120,000 ms)
   
     // Clear the interval when the component is unmounted
     return () => clearInterval(intervalId);
