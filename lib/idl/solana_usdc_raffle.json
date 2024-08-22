@@ -570,20 +570,12 @@
             "type": "u32"
           },
           {
-            "name": "buyer",
-            "type": "publicKey"
-          },
-          {
-            "name": "purchasedTicket",
-            "type": "u32"
-          },
-          {
-            "name": "fromIndex",
-            "type": "u32"
-          },
-          {
-            "name": "toIndex",
-            "type": "u32"
+            "name": "entries",
+            "type": {
+              "vec": {
+                "defined": "UserEntry"
+              }
+            }
           },
           {
             "name": "startTime",
@@ -594,15 +586,15 @@
             "type": "u32"
           },
           {
-            "name": "winAmount",
-            "type": "u32"
-          },
-          {
             "name": "claimed",
             "type": "bool"
           },
           {
             "name": "winnerTicketNumber",
+            "type": "u32"
+          },
+          {
+            "name": "winAmount",
             "type": "u32"
           }
         ]
@@ -662,6 +654,10 @@
             "type": "u32"
           },
           {
+            "name": "winnerSubIndex",
+            "type": "u32"
+          },
+          {
             "name": "newRandomAddress",
             "type": "publicKey"
           },
@@ -708,6 +704,30 @@
     }
   ],
   "types": [
+    {
+      "name": "UserEntry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "buyer",
+            "type": "publicKey"
+          },
+          {
+            "name": "purchasedTicket",
+            "type": "u32"
+          },
+          {
+            "name": "fromIndex",
+            "type": "u32"
+          },
+          {
+            "name": "toIndex",
+            "type": "u32"
+          }
+        ]
+      }
+    },
     {
       "name": "RaffleStatus",
       "type": {
@@ -844,6 +864,6 @@
     }
   ],
   "metadata": {
-    "address": "FxQ7ubpWy7aXJvWJUD59twAAAAdcVb9s8GBUPmaU3CH"
+    "address": "CpkjyHFM9oAp1FeSScWvKBqtWbB1mt9ZXCPLnVtrxVDa"
   }
 }

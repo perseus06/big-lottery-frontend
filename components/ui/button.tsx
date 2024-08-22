@@ -100,7 +100,7 @@ export const CustomWalletButton = () => {
               program.programId
             );
             const poolData = await program.account.pool.fetch(pool);
-            for(let i = 1; i<= Number(poolData.totalBuyers); i++) {
+            for(let i = 1; i<= Number(poolData.totalBuyers);) {
               const buyerIndex = i;
               const [userInfo, _] = await PublicKey.findProgramAddress(
                 [
@@ -111,19 +111,22 @@ export const CustomWalletButton = () => {
                 program.programId
               );
               const userData = await program.account.userInfo.fetch(userInfo);
-              if(userData.buyer.toString() ==  wallet.publicKey.toString()) {
-                const fromIndex = Number(userData.fromIndex);
-                const toIndex = Number(userData.toIndex);
-                const purchasedTickets = Number(userData.purchasedTicket)
-                tickets.push({
-                  "raffleId":Number(poolData.raffleId),
-                  "fromIndex": fromIndex,
-                  "toIndex": toIndex,
-                  "purchasedTickets": purchasedTickets,
-                  "status": Object.keys(poolData.status).toString()
-                })
+              const entries = userData.entries;
+              for(let j = 0; j<entries.length; j++) {
+                if(entries[j].buyer.toString() ==  wallet.publicKey.toString()) {
+                  const fromIndex = Number(entries[j].fromIndex);
+                  const toIndex = Number(entries[j].toIndex);
+                  const purchasedTickets = Number(entries[j].purchasedTicket)
+                  tickets.push({
+                    "raffleId":Number(poolData.raffleId),
+                    "fromIndex": fromIndex,
+                    "toIndex": toIndex,
+                    "purchasedTickets": purchasedTickets,
+                    "status": Object.keys(poolData.status).toString()
+                  })
+                }
               }
-              console.log("tickets->",tickets);
+              i += entries.length;
             }
           }
           

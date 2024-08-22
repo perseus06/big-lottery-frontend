@@ -361,7 +361,7 @@ export default function Page() {
           <div className="md:flex items-center space-x-2">
             <div className="animate-pulsate w-fit">
               <Image
-                src="/lottery-logo.png"
+                src="/lottery-logo1.png"
                 alt="World's Biggest Lottery"
                 width={200}
                 height={50}

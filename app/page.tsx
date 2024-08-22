@@ -156,6 +156,7 @@ export default function Main() {
           setBiggestLottery(biggestPrize);
   
           // Move the biggest raffle to the beginning of the array
+          console.log([activeRaffles[0], ...activeRaffles.slice(1)], [activeRaffles[0], ...activeRaffles.slice(1)].length);
           setLiveRaffles([activeRaffles[0], ...activeRaffles.slice(1)]);
           // set winnerInfo 
           // await handleWinnerInfo();
@@ -289,6 +290,8 @@ export default function Main() {
         );
 
         console.log("Your transaction signature for buying tickets without referral:", signature);
+        const userInfoData = await program.account.userInfo.fetch(userInfo);
+        console.log("user information after buy tickets ->",userInfoData);
 
         const allPoolAccount = await program.account.pool.all();
 
@@ -343,7 +346,7 @@ export default function Main() {
           <div className="flex items-center space-x-2">
             <div className="animate-pulsate">
               <Image
-                src="/lottery-logo.png"
+                src="/lottery-logo1.png"
                 alt="World's Biggest Lottery"
                 width={200}
                 height={50}
@@ -377,7 +380,7 @@ export default function Main() {
             </div> :
             <>
               {
-                liveRaffles.length > 0 &&
+                (liveRaffles.length > 0 && liveRaffles[0] !== undefined) &&
                 <div className="mt-12 w-full max-w-screen-lg px-4">
                   <div className="grid grid-cols-1">
                     <div className="bg-gradient-to-r from-teal-500 to-purple-500 text-white p-8 rounded-lg shadow-xl">
@@ -774,6 +777,10 @@ export default function Main() {
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-1 gap-4">
+                        <div>
+                          <span className="font-medium">Raffle Number:</span>
+                          {completedPool.account.raffleId.toLocaleString()}
+                        </div>
                         <div>
                           <span className="font-medium">Winner:</span>
                           {completedPool.account.winner.toBase58().slice(0, 3)}...{completedPool.account.winner.toBase58().slice(-3)}
