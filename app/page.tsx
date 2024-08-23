@@ -405,6 +405,7 @@ export default function Main() {
           autoPlay
           loop
           muted
+          preload="none"
           className="absolute top-0 left-0 w-full h-full object-cover opacity-15 z-0"
         >
           <source src="/gold.mp4" type="video/mp4" />
