@@ -159,7 +159,7 @@ export const CustomWalletButton = () => {
   return (
     <>
       <div className="flex space-x-4">
-        <button
+        {publicKey && <button
           onClick={() => handleOpenReferralModal()}
           className="relative inline-flex items-center justify-center p-8 px-12 py-4 overflow-hidden text-1xl font-medium text-white transition duration-300 ease-out bg-gradient-to-r from-teal-500 to-purple-500 rounded-full shadow-md group"
           title="Show my referral links"
@@ -179,8 +179,8 @@ export const CustomWalletButton = () => {
             Referral Link
           </span>
           <span className="relative invisible">Referral Link</span>
-        </button> 
-        <button
+        </button>} 
+        {publicKey && <button
           className="relative inline-flex items-center justify-center p-8 px-12 py-4 overflow-hidden text-1xl font-medium text-white transition duration-300 ease-out bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full shadow-md group hover:from-orange-500 hover:to-yellow-400"
           onClick={showMyTickets}
           title="Show my tickets"
@@ -199,8 +199,7 @@ export const CustomWalletButton = () => {
             My Tickets
           </span>
           <span className="relative invisible">My Tickets</span>
-        </button>
-
+        </button>}
         <button
           className="relative inline-flex items-center justify-center p-8 px-12 py-4 overflow-hidden text-1xl font-medium text-white transition duration-300 ease-out bg-gradient-to-r from-green-400 to-blue-500 rounded-full shadow-md group hover:from-blue-500 hover:to-green-400"
           onClick={handleClick}
