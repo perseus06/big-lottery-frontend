@@ -227,6 +227,7 @@ export default function Main() {
         const remainTickets = Number(poolData.totalTicket) - Number(poolData.purchasedTicket);
         if(remainTickets < totalTicket){
           toast.error("Please buy avaiable tickets!");
+          return;
         }
 
         let buyerIndex = Number(poolData.totalBuyers) + 1;
