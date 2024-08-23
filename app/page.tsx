@@ -74,10 +74,13 @@ import {
   GLOBAL_STATE_SEED,
 } from "@/lib/constants";
 
-import RaffleDetailsModal from "./components/raffleDetailsModal";
-import MyReferralModal from "./components/myReferralModal";
+import RaffleDetailsModal from './components/raffleDetailsModal';
 import TicketPurchaseModal from "./components/ticketPurchaseModal";
+import WinnerAddressModal from "./components/winnerAddressModal";
+
 import { useSearchParams } from 'next/navigation'
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function Main() {
   const { connection } = useConnection();
@@ -99,13 +102,21 @@ export default function Main() {
   const [isOpen, setIsOpen] = useState(false);
   const [isBuyTicket, setIsBuyTicket] = useState(false);
   const [selectedRaffle, setSelectedRaffle] = useState(null); // State to track which raffle's modal is open
+  const [isWinner, setIsWinner] = useState(false);
+  const [winnerAddress, setWinnerAddress] = useState<String>("");
+
   const searchParams = useSearchParams()
- 
-  const referral = searchParams.get('ref');
+  let referral = searchParams.get('ref');
+  if(referral) {
+    localStorage.setItem('referral', referral);
+  } else {
+    referral = localStorage.getItem('referral');
+  }
 
   useEffect(() => {
     setIsConnected(connected);
   }, [connected]);
+  
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
@@ -161,10 +172,7 @@ export default function Main() {
           setBiggestLottery(biggestPrize);
   
           // Move the biggest raffle to the beginning of the array
-          console.log([activeRaffles[0], ...activeRaffles.slice(1)], [activeRaffles[0], ...activeRaffles.slice(1)].length);
           setLiveRaffles([activeRaffles[0], ...activeRaffles.slice(1)]);
-          // set winnerInfo 
-          // await handleWinnerInfo();
         } catch (error) {
           console.log("Error while fetching pool data:", error);
         } finally {
@@ -177,7 +185,7 @@ export default function Main() {
     fetchData();
   
     // Set interval for fetching data every 1 or 2 minutes
-    intervalId = setInterval(fetchData, 30 * 1000); // 2 minutes (120,000 ms)
+    intervalId = setInterval(fetchData, 2 * 60 * 1000); // 2 minutes (120,000 ms)
   
     // Clear the interval when the component is unmounted
     return () => clearInterval(intervalId);
@@ -188,6 +196,11 @@ export default function Main() {
     setSelectedRaffle(raffle);
     setIsOpen(true); // Open the modal
   };
+
+  const handleWinnerModal = (address: String) => {
+    setWinnerAddress(address);
+    setIsWinner(true);
+  }
 
   const handleBuyTickets = async (totalTicket: number, raffleId: number) => {
     try {
@@ -232,6 +245,12 @@ export default function Main() {
           PAYTOKEN_MINT,
           wallet?.publicKey,
         );
+
+        const buyerAtaInfo = await provider.connection.getAccountInfo(buyerAta);
+        if (!buyerAtaInfo) {
+          toast.error("You don't have USDC in your wallet!");
+          return;
+        } 
         
         const adminAta = getAssociatedTokenAddressSync(
           PAYTOKEN_MINT,
@@ -364,9 +383,15 @@ export default function Main() {
         setIsBuyTicket(true);
         const userInfoData = await program.account.userInfo.fetch(userInfo);
         console.log("user information after buy tickets ->",userInfoData);
+        toast.success("You bought tickets successfully!");
       }
     } catch (error:any) {
       console.log("error->", error);
+      if(error.message.includes("ReferralError")) {
+        toast.error("Referal should not be buyer!");
+      } else if(error.message.includes("User rejected the request")) {
+        toast.error("User rejected the request!");
+      }
     }
   };
 
@@ -383,6 +408,7 @@ export default function Main() {
       >
         <source src="/gold.mp4" type="video/mp4" />
       </video>
+      <ToastContainer />
       <div className="relative z-10 w-full md:w-auto">
         <header className="md:flex items-center w-full max-w-screen-xl">
           <div className="flex items-center space-x-2">
@@ -400,13 +426,13 @@ export default function Main() {
           </div>
         </header>
         <div className="mt-12 w-full max-w-screen-lg px-4">
-          <div className="bg-gradient-to-r from-teal-500 to-purple-500 text-white p-8 rounded-lg shadow-xl text-center mb-6">
+          <div className="bg-gradient-to-r from-teal-500 to-purple-500 text-white p-8 rounded-lg shadow-xl text-center mb-6 border">
             <h2 className="text-3xl font-bold mb-6">
-              🎉 Welcome to the World's Biggest Lottery! 🎉
+              🎉 Welcome to the World's Biggest Raffle! 🎉
             </h2>
             <p className="text-lg">
-              This is the world's Biggest Lottery! Every time a smaller lottery is completed, a larger lottery is created.
-              Eventually, we aim to be the World's Largest Raffle Lottery.
+              This is the world's Biggest Raffle! Every time a smaller raffle is completed, a larger raffle is created.
+              Eventually, we aim to be the World's Largest Raffle Raffle.
             </p>
             <p className="text-lg">
               Don't miss your chance to win big! Buy your tickets now
@@ -425,7 +451,7 @@ export default function Main() {
                 (liveRaffles.length > 0 && liveRaffles[0] !== undefined) &&
                 <div className="mt-12 w-full max-w-screen-lg px-4">
                   <div className="grid grid-cols-1">
-                    <div className="bg-gradient-to-r from-teal-500 to-purple-500 text-white p-8 rounded-lg shadow-xl">
+                    <div className="bg-gradient-to-r from-teal-500 to-purple-500 text-white p-8 rounded-lg shadow-xl border">
                       <div className="mt-6 flex justify-center items-center mb-6">
                         <h4 className="text-[48px] md:text-[64px] leading-none font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-yellow-500 to-green-500 animate-pulse drop-shadow-lg shadow-white">
                           ${biggestLottery.toLocaleString()}
@@ -477,7 +503,7 @@ export default function Main() {
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                             <Button
-                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-md group hover:bg-pink-500"
+                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-md group hover:bg-pink-500 border"
                               onClick={(e) =>
                                 setTicketQuantities(() => ticketQuantities.map((item, i) => {
                                   if (i == 0) {
@@ -513,7 +539,7 @@ export default function Main() {
                             </Button>
 
                             <Button
-                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-md group hover:bg-pink-500"
+                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-md group hover:bg-pink-500 border"
                               onClick={() =>
                                 setTicketQuantities(() => ticketQuantities.map((item, i) => {
                                   if (i == 0) {
@@ -549,7 +575,7 @@ export default function Main() {
                             </Button>
 
                             <Button
-                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-md group hover:bg-pink-500"
+                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-md group hover:bg-pink-500 border"
                               onClick={(e) =>
                                 setTicketQuantities(() => ticketQuantities.map((item, i) => {
                                   if (i == 0) {
@@ -585,7 +611,7 @@ export default function Main() {
                             </Button>
 
                             <Button
-                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-md group hover:bg-pink-500"
+                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-md group hover:bg-pink-500 border"
                               onClick={() =>
                                 setTicketQuantities(() => ticketQuantities.map((item, i) => {
                                   if (i == 0) {
@@ -626,7 +652,7 @@ export default function Main() {
                           <span>${(ticketQuantities[0] * liveRaffles[0].account.ticketPrice).toFixed(2)} USDC</span>
                         </div>
                         <div className="grid  grid-cols-1 md:grid-cols-2 gap-2">
-                          {Object.keys(liveRaffles[0].account.status).toString() == "active" ? <Button onClick={() => handleBuyTickets(ticketQuantities[0], liveRaffles[0].account.raffleId)} className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500">
+                          {Object.keys(liveRaffles[0].account.status).toString() == "active" ? <Button onClick={() => handleBuyTickets(ticketQuantities[0], liveRaffles[0].account.raffleId)} className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500 border">
                             <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
                               <svg
                                 className="w-6 h-6"
@@ -648,13 +674,13 @@ export default function Main() {
                             </span>
                             <span className="relative invisible">Buy Tickets</span>
                           </Button>: <Button
-                            className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-black transition duration-300 ease-out bg-slate-300 rounded-full shadow-lg group hover:bg-pink-500" disabled={true}
+                            className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-black transition duration-300 ease-out bg-slate-300 rounded-full shadow-lg group hover:bg-pink-500 border" disabled={true}
                           >
                             SELECTING WINNER
                           </Button>}
                           <Button
                             onClick={() => handleOpenModal(liveRaffles[0])}
-                            className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500"
+                            className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500 border"
                           >
                             Show Details
                           </Button>
@@ -733,7 +759,7 @@ export default function Main() {
                                         <span>${(ticketQuantities[i + 1] * liveRaffle.account.ticketPrice).toFixed(2)} USDC</span>
                                       </div>
                                       {Object.keys(liveRaffle.account.status).toString() == "active" ? <Button onClick={() => handleBuyTickets(ticketQuantities[i + 1], liveRaffle.account.raffleId)}
-                                        className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500"
+                                        className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500 border"
                                       >
                                         <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
                                           <svg
@@ -764,7 +790,7 @@ export default function Main() {
                                       </Button>}
                                       <Button
                                         onClick={() => handleOpenModal(liveRaffle)}
-                                        className="w-full px-4 py-2 mt-4 bg-blue-500 text-white rounded-md shadow-md hover:bg-blue-600 transition-all"
+                                        className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500 border"
                                       >
                                         Show Details
                                       </Button>
@@ -814,37 +840,36 @@ export default function Main() {
                 return (
                   <>
                     <Card key={completedPool.account.raffleId}  className={`bg-gradient-to-r ${styleType} text-white shadow-lg hover:shadow-2xl transition-all duration-300`}>
-                    <CardHeader>
-                      <CardTitle>Lottery ({`${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 gap-4">
-                        <div>
-                          <span className="font-medium">Raffle Number:</span>
-                          {completedPool.account.raffleId.toLocaleString()}
+                      <CardHeader>
+                        <CardTitle>Raffle ({`${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`})</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 gap-4">
+                          <div>
+                            <span className="font-medium">Raffle Number:</span>
+                            {completedPool.account.raffleId.toLocaleString()}
+                          </div>
+                          <div onClick={() => handleWinnerModal(completedPool.account.winner.toBase58())}>
+                            <span className="font-medium">Winner:</span>
+                            {completedPool.account.winner.toBase58().slice(0, 3)}...{completedPool.account.winner.toBase58().slice(-3)}
+                          </div>
+                          <div>
+                            <span className="font-medium">Winning Ticket:</span>
+                            {completedPool.account.winnerTicketNumber.toLocaleString()}
+                          </div>
+                          <div>
+                            <span className="font-medium">Amount Won:</span>
+                            ${completedPool.account.prize.toLocaleString()} USDC
+                          </div>
+                          <div>
+                            <span className="font-medium">Timestamp:</span>
+                            {dateString}
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-medium">Winner:</span>
-                          {completedPool.account.winner.toBase58().slice(0, 3)}...{completedPool.account.winner.toBase58().slice(-3)}
-                        </div>
-                        <div>
-                          <span className="font-medium">Winning Ticket:</span>
-                          {completedPool.account.winnerTicketNumber.toLocaleString()}
-                        </div>
-                        <div>
-                          <span className="font-medium">Amount Won:</span>
-                          ${completedPool.account.prize.toLocaleString()} USDC
-                        </div>
-                        <div>
-                          <span className="font-medium">Timestamp:</span>
-                          {/* 2023-04-30 23:59:59 */}
-                          {dateString}
-                        </div>
-                      </div>
-                    </CardContent>
+                      </CardContent>
                     </Card>
+                    {isWinner && <WinnerAddressModal setIsWinner = {setIsWinner} pubkey={winnerAddress}/>}
                   </>  
-                  
                 );
               }) :
               <>

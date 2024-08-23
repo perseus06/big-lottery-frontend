@@ -3,7 +3,8 @@ export interface Ticket{
     fromIndex: number,
     toIndex: number,
     purchasedTickets: number,
-    status: String
+    status: String,
+    statusValue: Number,
 }
   
 export interface MyTicketsProps {
@@ -23,5 +24,15 @@ export interface MyReferralModalProps {
 
 export interface TicketPurchaseModalProps {
     setIsBuyTicket: (isBuyTicket: boolean) => void;  // Define the type of setTicketIsOpen
-
 }
+
+export interface WinnerAddressModalProps {
+    setIsWinner: (isWinner: boolean) => void;
+    pubkey: String
+}
+
+export interface StatusOrder {
+    Processing: number,
+    Active: number,
+    Completed: number,
+  };

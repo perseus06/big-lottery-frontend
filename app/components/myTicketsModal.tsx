@@ -39,102 +39,79 @@ export default function MyTickets({ setTicketIsOpen, myTickets }: MyTicketsProps
 
   return (
     <>
-      {/* Dark background overlay */}
-      <div
-        className="fixed inset-0 bg-black bg-opacity-20 z-0"
-        onClick={() => setTicketIsOpen(false)}
-      />
-
-      {/* Centered modal */}
-      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-        <div
-          className={`w-80 md:w-full h-96 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg shadow-lg`}
-        >
-          {/* Modal header */}
-          <div className="rounded-t-lg text-left">
-            <h5 className="m-0 p-2 text-white font-bold text-lg">
-              My Tickets
-            </h5>
-          </div>
-          {/* Close button */}
-          <button
-            className="absolute top-0 right-0 mt-1 mr-1 bg-white rounded-full p-1 text-gray-800 shadow hover:shadow-md transition-transform transform hover:translate-x-1 hover:translate-y-1"
-            onClick={() => setTicketIsOpen(false)}
-          >
-            <RiCloseLine className="text-xl" />
-          </button>
-
-          {/* Modal content with vertical scroll */}
-          <div className="p-4 text-sm text-white text-left grid gap-2 max-h-64 overflow-y-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-1xl font-bold text-white">
-                    Raffle #
-                  </TableHead>
-                  <TableHead className="text-1xl font-bold text-white">
-                    Ticket (From Index)
-                  </TableHead>
-                  <TableHead className="text-1xl font-bold text-white">
-                    Ticket (To Index)
-                  </TableHead>
-                  <TableHead className="text-1xl font-bold text-white">
-                    Purchased Tickets
-                  </TableHead>
-                  <TableHead className="text-1xl font-bold text-white">
-                    Status
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentTickets.length > 0 ? (
-                  currentTickets.map((myTicket, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{myTicket.raffleId.toLocaleString()}</TableCell>
-                      <TableCell>{myTicket.fromIndex.toLocaleString()}</TableCell>
-                      <TableCell>{myTicket.toIndex.toLocaleString()}</TableCell>
-                      <TableCell>{myTicket.purchasedTickets.toLocaleString()}</TableCell>
-                      <TableCell>{myTicket.status}</TableCell>
+      <div className="fixed inset-0 flex items-center justify-center z-50">
+        <div className="absolute inset-0 bg-black opacity-50"></div>
+          <div className={`relative bg-gradient-to-r from-teal-500 to-purple-500 p-8 rounded-lg shadow-lg text-white w-[1/2] mx-auto border`}>
+            <h2 className="text-2xl font-bold mb-4">My Tickets</h2>
+            <div className="mb-4">
+              {/* Modal content with vertical scroll */}
+              <div className="p-4 text-sm text-white text-left grid gap-2 max-h-80">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-1xl font-bold text-white">
+                        Raffle #
+                      </TableHead>
+                      <TableHead className="text-1xl font-bold text-white">
+                        Ticket (From Index)
+                      </TableHead>
+                      <TableHead className="text-1xl font-bold text-white">
+                        Ticket (To Index)
+                      </TableHead>
+                      <TableHead className="text-1xl font-bold text-white">
+                        Purchased Tickets
+                      </TableHead>
+                      <TableHead className="text-1xl font-bold text-white">
+                        Status
+                      </TableHead>
                     </TableRow>
-                  ))
-                ) : (
-                  <></>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  </TableHeader>
+                  <TableBody>
+                    {currentTickets.length > 0 ? (
+                      currentTickets.map((myTicket, i) => (
+                        <TableRow key={i}>
+                          <TableCell>{myTicket.raffleId.toLocaleString()}</TableCell>
+                          <TableCell>{myTicket.fromIndex.toLocaleString()}</TableCell>
+                          <TableCell>{myTicket.toIndex.toLocaleString()}</TableCell>
+                          <TableCell>{myTicket.purchasedTickets.toLocaleString()}</TableCell>
+                          <TableCell>{myTicket.status}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <></>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
 
-          {/* Pagination Controls */}
-          <div className="flex justify-center items-center mt-2">
+              {/* Pagination Controls */}
+              <div className="flex justify-center items-center mt-2">
+                <button
+                  className="bg-gray-300 text-gray-700 font-medium py-1 px-3 rounded-lg text-sm shadow hover:bg-gray-400 transition-all"
+                  onClick={handlePrevPage}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </button>
+                <span className="mx-2 text-white">
+                  Page {currentPage.toLocaleString()} of {totalPages.toLocaleString()}
+                </span>
+                <button
+                  className="bg-gray-300 text-gray-700 font-medium py-1 px-3 rounded-lg text-sm shadow hover:bg-gray-400 transition-all"
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
             <button
-              className="bg-gray-300 text-gray-700 font-medium py-1 px-3 rounded-lg text-sm shadow hover:bg-gray-400 transition-all"
-              onClick={handlePrevPage}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </button>
-            <span className="mx-2 text-white">
-              Page {currentPage.toLocaleString()} of {totalPages.toLocaleString()}
-            </span>
-            <button
-              className="bg-gray-300 text-gray-700 font-medium py-1 px-3 rounded-lg text-sm shadow hover:bg-gray-400 transition-all"
-              onClick={handleNextPage}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </button>
-          </div>
-
-          {/* Modal actions */}
-          <div className="absolute bottom-2 w-full flex justify-around items-center">
-            <button
-              className="bg-red-500 text-white font-medium py-2 px-7 rounded-lg text-sm shadow hover:bg-red-600 transition-all transform hover:-translate-y-1"
+              className="absolute top-2 right-2 text-white hover:text-gray-200 transition duration-300 text-[24px]"
               onClick={() => setTicketIsOpen(false)}
             >
-              Cancel
+              &times;
             </button>
           </div>
-        </div>
       </div>
     </>
   );

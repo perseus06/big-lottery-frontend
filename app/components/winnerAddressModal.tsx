@@ -5,24 +5,23 @@ import { Input } from "@/components/ui/input";
 
 import { useState } from "react";
 
-import {MyReferralModalProps} from '../../lib/interface';
+import {WinnerAddressModalProps} from '../../lib/interface';
 import { Button } from "@/components/ui/button";
 
-export default function MyReferralModal({ setIsReferralOpen, pubkey }: MyReferralModalProps) {
+export default function WinnerAddressModal({ setIsWinner, pubkey }: WinnerAddressModalProps) {
   return (
     <>
-      {/* Dark background overlay */}
       <div className="fixed inset-0 flex items-center justify-center z-50">
         <div className="absolute inset-0 bg-black opacity-50"></div>
-          <div className="relative bg-gradient-to-r from-teal-500 to-purple-500 p-8 rounded-lg shadow-lg text-white max-w-md mx-auto w-[90%] border">
-            <h2 className="text-2xl font-bold mb-4">My Referral Link</h2>
+          <div className={`relative bg-gradient-to-r from-teal-500 to-purple-500 p-8 rounded-lg shadow-lg text-white max-w-md mx-auto w-[90%] border`}>
+            <h2 className="text-2xl font-bold mb-4">Winner Address</h2>
             <div className="mb-4">
               <div className="mt-2 p-2 flex bg-white bg-opacity-10 rounded-md overflow-hidden overflow-ellipsis break-all">
                 <Input
                   className="flex-1 text-green-500"
                   value={
                     pubkey
-                      ? `https://big-lottery.vercel.app/?ref=${pubkey}`
+                      ? `${pubkey}`
                       : ""
                   }
                   readOnly
@@ -32,7 +31,7 @@ export default function MyReferralModal({ setIsReferralOpen, pubkey }: MyReferra
                   onClick={() => {
                     if (pubkey) {
                       navigator.clipboard.writeText(
-                        `https://big-lottery.vercel.app/?ref=${pubkey}`
+                        `${pubkey}`
                       );
                     }
                   }}
@@ -60,10 +59,12 @@ export default function MyReferralModal({ setIsReferralOpen, pubkey }: MyReferra
                 </Button>
               </div>
             </div>
-            <span>Referral Bonus: You gain 5% on each ticket purchase</span>
+            <div className="underline text-center">
+              <a href={`https://solana.fm/address/${pubkey}/transactions?cluster=devnet-solana`} target="_blank">Go to Explorer</a>
+            </div>
             <button
               className="absolute top-2 right-2 text-white hover:text-gray-200 transition duration-300 text-[24px]"
-              onClick={() => setIsReferralOpen(false)}
+              onClick={() => setIsWinner(false)}
             >
               &times;
             </button>

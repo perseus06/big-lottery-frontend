@@ -33,6 +33,7 @@ import { PublicKey } from "@solana/web3.js";
 import MyTicketsModal from "@/app/components/myTicketsModal";
 import MyReferralModal from "@/app/components/myReferralModal";
 import {Ticket} from '../../lib/interface';
+import { StatusOrder } from "../../lib/interface";
 
 // Default styles that can be overridden by your app
 require("@solana/wallet-adapter-react-ui/styles.css");
@@ -116,19 +117,26 @@ export const CustomWalletButton = () => {
                 if(entries[j].buyer.toString() ==  wallet.publicKey.toString()) {
                   const fromIndex = Number(entries[j].fromIndex);
                   const toIndex = Number(entries[j].toIndex);
-                  const purchasedTickets = Number(entries[j].purchasedTicket)
+                  const purchasedTickets = Number(entries[j].purchasedTicket);
+                  const statusValue = Object.keys(poolData.status).toString() === "processing"? 1 : (Object.keys(poolData.status).toString() === "active"? 2 : 3);
+
                   tickets.push({
                     "raffleId":Number(poolData.raffleId),
                     "fromIndex": fromIndex,
                     "toIndex": toIndex,
                     "purchasedTickets": purchasedTickets,
-                    "status": Object.keys(poolData.status).toString()
+                    "status": Object.keys(poolData.status).toString(),
+                    "statusValue": statusValue,
                   })
                 }
               }
               i += entries.length;
             }
           }
+
+          // Sort tickets by status: Processing, Active, and then Completed
+        
+          tickets.sort((a, b) => a.statusValue - b.statusValue);
           
           setMyTickets(tickets);
           setTicketIsOpen(true);
@@ -209,7 +217,7 @@ export const CustomWalletButton = () => {
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="absolute inset-0 bg-black opacity-50"></div>
-          <div className="relative bg-gradient-to-r from-green-400 to-blue-500 p-8 rounded-lg shadow-lg text-white max-w-md mx-auto w-[90%]">
+          <div className="relative bg-gradient-to-r from-green-400 to-blue-500 p-8 rounded-lg shadow-lg text-white max-w-md mx-auto w-[90%] border">
             <h2 className="text-2xl font-bold mb-4">Wallet Options</h2>
             <div className="mb-4">
               <span className="font-medium">Connected Address:</span>
