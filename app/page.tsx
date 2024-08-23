@@ -400,14 +400,16 @@ export default function Main() {
       key="1"
       className="flex flex-col items-center justify-center bg-gradient-to-r from-green-400 to-blue-500 text-white min-h-screen p-4 relative"
     >
-      <video
-        autoPlay
-        loop
-        muted
-        className="absolute top-0 left-0 w-full h-full object-cover opacity-15 z-0 video-element"
-      >
-        <source src="/gold.mp4" type="video/mp4" />
-      </video>
+      <div className="hidden md:block">
+        <video
+          autoPlay
+          loop
+          muted
+          className="absolute top-0 left-0 w-full h-full object-cover opacity-15 z-0"
+        >
+          <source src="/gold.mp4" type="video/mp4" />
+        </video>
+      </div>
       <ToastContainer />
       <div className="relative z-10 w-full md:w-auto">
         <header className="md:flex items-center w-full max-w-screen-xl">
