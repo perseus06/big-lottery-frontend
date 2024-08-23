@@ -100,6 +100,7 @@ export default function Main() {
   const [totalRaffles, setTotalRaffles] = useState<number>(0);
   const [biggestLottery, setBiggestLottery] = useState<number>(0);
   const [isOpen, setIsOpen] = useState(false);
+  const [isBuy, setIsBuy] = useState(false);
   const [isBuyTicket, setIsBuyTicket] = useState(false);
   const [selectedRaffle, setSelectedRaffle] = useState(null); // State to track which raffle's modal is open
   const [isWinner, setIsWinner] = useState(false);
@@ -122,7 +123,8 @@ export default function Main() {
     let intervalId: NodeJS.Timeout;
   
     const fetchData = async () => {
-      if (wallet) {
+      console.log("isBuy->", isBuy);
+      if (wallet && !isBuy) {
         try {
           setLoading(true);
   
@@ -185,12 +187,11 @@ export default function Main() {
     fetchData();
   
     // Set interval for fetching data every 1 or 2 minutes
-    intervalId = setInterval(fetchData, 2 * 60 * 1000); // 2 minutes (120,000 ms)
-  
+    intervalId = setInterval(fetchData, 30 * 1000); // 2 minutes (120,000 ms)
     // Clear the interval when the component is unmounted
     return () => clearInterval(intervalId);
   
-  }, [wallet]);
+  }, [wallet, isBuy]);
  
   const handleOpenModal = (raffle: any) => {
     setSelectedRaffle(raffle);
@@ -205,6 +206,7 @@ export default function Main() {
   const handleBuyTickets = async (totalTicket: number, raffleId: number) => {
     try {
       if (wallet) {
+        setIsBuy(true);
         let provider: Provider;
         try {
           provider = getProvider();
@@ -222,6 +224,10 @@ export default function Main() {
           program.programId
         );
         const poolData = await program.account.pool.fetch(pool);
+        const remainTickets = Number(poolData.totalTicket) - Number(poolData.purchasedTicket);
+        if(remainTickets < totalTicket){
+          toast.error("Please buy avaiable tickets!");
+        }
 
         let buyerIndex = Number(poolData.totalBuyers) + 1;
 
@@ -391,7 +397,10 @@ export default function Main() {
         toast.error("Referal should not be buyer!");
       } else if(error.message.includes("User rejected the request")) {
         toast.error("User rejected the request!");
+        setIsBuy(false);
       }
+    } finally {
+      setIsBuy(false);
     }
   };
 
