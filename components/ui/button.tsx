@@ -158,7 +158,7 @@ export const CustomWalletButton = () => {
 
   return (
     <>
-      <div className="flex space-x-4">
+      <div className="flex justify-center space-x-4 mt-6">
         {publicKey && <button
           onClick={() => handleOpenReferralModal()}
           className="relative inline-flex items-center justify-center p-8 px-12 py-4 overflow-hidden text-1xl font-medium text-white transition duration-300 ease-out bg-gradient-to-r from-teal-500 to-purple-500 rounded-full shadow-md group"

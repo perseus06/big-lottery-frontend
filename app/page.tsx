@@ -54,6 +54,7 @@ import {
   utils,
   BN,
   Provider,
+  Wallet,
 } from "@project-serum/anchor";
 import {
   networkStateAccountAddress,
@@ -84,9 +85,9 @@ import 'react-toastify/dist/ReactToastify.css';
 
 export default function Main() {
   const { connection } = useConnection();
-  const wallet = useAnchorWallet();
-  const { publicKey, connected, sendTransaction } = useWallet();
+  let wallet = useAnchorWallet();
 
+  const { publicKey, connected, sendTransaction } = useWallet();
   const [isConnected, setIsConnected] = useState(false);
   const [ticketQuantity, setTicketQuantity] = useState<number>(0);
   const [program, setProgram] = useState<Program>();
@@ -121,10 +122,11 @@ export default function Main() {
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
-  
+   
+
     const fetchData = async () => {
-      console.log("isBuy->", isBuy);
-      if (wallet && !isBuy) {
+
+      if (!isBuy) {
         try {
           setLoading(true);
   
@@ -132,8 +134,18 @@ export default function Main() {
           try {
             provider = getProvider();
           } catch {
-            provider = new AnchorProvider(connection, wallet, {});
-            setProvider(provider);
+            if(wallet != undefined) {
+              provider = new AnchorProvider(connection, wallet, {});
+              setProvider(provider);
+            } else {
+              const keypair = Keypair.generate();
+              provider = new AnchorProvider(connection, {
+                publicKey: keypair.publicKey,
+                signAllTransactions: (txs) => Promise.resolve(txs),
+                signTransaction: (tx) => Promise.resolve(tx),
+              }, {});
+              setProvider(provider);
+            }
           }
   
           const program = new Program(IDL as Idl, PROGRAM_ID);
@@ -226,7 +238,7 @@ export default function Main() {
         const poolData = await program.account.pool.fetch(pool);
         const remainTickets = Number(poolData.totalTicket) - Number(poolData.purchasedTicket);
         if(remainTickets < totalTicket){
-          toast.error("Please buy avaiable tickets!");
+          toast.error("Please purchase available tickets!");
           return;
         }
 
@@ -516,7 +528,7 @@ export default function Main() {
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                             <Button
-                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-md group hover:bg-pink-500 border"
+                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-900 rounded-full shadow-md group hover:bg-pink-500 border"
                               onClick={(e) =>
                                 setTicketQuantities(() => ticketQuantities.map((item, i) => {
                                   if (i == 0) {
@@ -552,7 +564,7 @@ export default function Main() {
                             </Button>
 
                             <Button
-                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-md group hover:bg-pink-500 border"
+                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-900 rounded-full shadow-md group hover:bg-pink-500 border"
                               onClick={() =>
                                 setTicketQuantities(() => ticketQuantities.map((item, i) => {
                                   if (i == 0) {
@@ -588,7 +600,7 @@ export default function Main() {
                             </Button>
 
                             <Button
-                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-md group hover:bg-pink-500 border"
+                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-900 rounded-full shadow-md group hover:bg-pink-500 border"
                               onClick={(e) =>
                                 setTicketQuantities(() => ticketQuantities.map((item, i) => {
                                   if (i == 0) {
@@ -624,7 +636,7 @@ export default function Main() {
                             </Button>
 
                             <Button
-                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-md group hover:bg-pink-500 border"
+                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-900 rounded-full shadow-md group hover:bg-pink-500 border"
                               onClick={() =>
                                 setTicketQuantities(() => ticketQuantities.map((item, i) => {
                                   if (i == 0) {
@@ -665,7 +677,11 @@ export default function Main() {
                           <span>${(ticketQuantities[0] * liveRaffles[0].account.ticketPrice).toFixed(2)} USDC</span>
                         </div>
                         <div className="grid  grid-cols-1 md:grid-cols-2 gap-2">
-                          {Object.keys(liveRaffles[0].account.status).toString() == "active" ? <Button onClick={() => handleBuyTickets(ticketQuantities[0], liveRaffles[0].account.raffleId)} className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500 border">
+                          {publicKey == null ?<Button
+                            className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-black transition duration-300 ease-out bg-slate-300 rounded-full shadow-lg group hover:bg-pink-500 border" disabled={true}
+                          >
+                            Connect Wallet
+                          </Button>:Object.keys(liveRaffles[0].account.status).toString() == "active" ? <Button onClick={() => handleBuyTickets(ticketQuantities[0], liveRaffles[0].account.raffleId)} className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-900 rounded-full shadow-lg group hover:bg-pink-500 border">
                             <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
                               <svg
                                 className="w-6 h-6"
@@ -693,7 +709,7 @@ export default function Main() {
                           </Button>}
                           <Button
                             onClick={() => handleOpenModal(liveRaffles[0])}
-                            className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500 border"
+                            className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-900 rounded-full shadow-lg group hover:bg-pink-500 border"
                           >
                             Show Details
                           </Button>
@@ -771,8 +787,12 @@ export default function Main() {
                                         <span>Total Cost:</span>
                                         <span>${(ticketQuantities[i + 1] * liveRaffle.account.ticketPrice).toFixed(2)} USDC</span>
                                       </div>
-                                      {Object.keys(liveRaffle.account.status).toString() == "active" ? <Button onClick={() => handleBuyTickets(ticketQuantities[i + 1], liveRaffle.account.raffleId)}
-                                        className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500 border"
+                                      {publicKey == null?<Button
+                                        className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-black transition duration-300 ease-out bg-slate-300 rounded-full shadow-lg group hover:bg-pink-500" disabled={true}
+                                      >
+                                        Connect Wallet
+                                      </Button>:Object.keys(liveRaffle.account.status).toString() == "active" ? <Button onClick={() => handleBuyTickets(ticketQuantities[i + 1], liveRaffle.account.raffleId)}
+                                        className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-900 rounded-full shadow-lg group hover:bg-pink-500 border"
                                       >
                                         <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
                                           <svg
@@ -803,7 +823,7 @@ export default function Main() {
                                       </Button>}
                                       <Button
                                         onClick={() => handleOpenModal(liveRaffle)}
-                                        className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-500 rounded-full shadow-lg group hover:bg-pink-500 border"
+                                        className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-900 rounded-full shadow-lg group hover:bg-pink-500 border"
                                       >
                                         Show Details
                                       </Button>
