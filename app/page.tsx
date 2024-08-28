@@ -125,7 +125,6 @@ export default function Main() {
    
 
     const fetchData = async () => {
-
       if (!isBuy) {
         try {
           setLoading(true);
@@ -422,7 +421,7 @@ export default function Main() {
       key="1"
       className="flex flex-col items-center justify-center bg-gradient-to-r from-green-400 to-blue-500 text-white min-h-screen p-4 relative"
     >
-      <div className="hidden md:block">
+      {/* <div className="hidden md:block">
         <video
           autoPlay
           loop
@@ -432,7 +431,7 @@ export default function Main() {
         >
           <source src="/gold.mp4" type="video/mp4" />
         </video>
-      </div>
+      </div> */}
       <ToastContainer />
       <div className="relative z-10 w-full md:w-auto">
         <header className="md:flex items-center w-full max-w-screen-xl">
@@ -511,15 +510,15 @@ export default function Main() {
                             <Input
                               className="w-full text-green-500"
                               value={ticketQuantities[0]}
-                              onChange={(e) =>
-                                setTicketQuantities(() => ticketQuantities.map((item, i) => {
-                                  if (i == 0) {
-                                    return parseInt(e.target.value);
-                                  }
-
-                                  return item;
-                                }))
-                              }
+                              onChange={(e) => {
+                                const newQuantity = parseInt(e.target.value);
+                                
+                                // Update ticket quantities
+                                setTicketQuantities(ticketQuantities.map((item, i) => (i === 0 ? newQuantity : item)));
+                                
+                                // Set isBuy to true
+                                setIsBuy(true);
+                              }}
                               id="ticket-quantity"
                               max="69"
                               min="1"
@@ -528,16 +527,14 @@ export default function Main() {
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                             <Button
-                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-900 rounded-full shadow-md group hover:bg-pink-500 border"
-                              onClick={(e) =>
-                                setTicketQuantities(() => ticketQuantities.map((item, i) => {
-                                  if (i == 0) {
-                                    return item + 5;
-                                  }
-
-                                  return item;
-                                }))
-                              }
+                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-[#FF6F61] rounded-full shadow-md group hover:bg-pink-500 border"
+                              onClick={(e) => {
+                                // Update ticket quantities
+                                setTicketQuantities(ticketQuantities.map((item, i) => (i === 0 ? item + 5 : item)));
+                                
+                                // Set isBuy to true
+                                setIsBuy(true);
+                              }}
                             >
                               <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
                                 <svg
@@ -564,16 +561,14 @@ export default function Main() {
                             </Button>
 
                             <Button
-                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-900 rounded-full shadow-md group hover:bg-pink-500 border"
-                              onClick={() =>
-                                setTicketQuantities(() => ticketQuantities.map((item, i) => {
-                                  if (i == 0) {
-                                    return item + 10;
-                                  }
-
-                                  return item;
-                                }))
-                              }
+                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-[#FF6F61] rounded-full shadow-md group hover:bg-pink-500 border"
+                              onClick={(e) => {
+                                // Update ticket quantities
+                                setTicketQuantities(ticketQuantities.map((item, i) => (i === 0 ? item + 10 : item)));
+                                
+                                // Set isBuy to true
+                                setIsBuy(true);
+                              }}
                             >
                               <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
                                 <svg
@@ -600,16 +595,14 @@ export default function Main() {
                             </Button>
 
                             <Button
-                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-900 rounded-full shadow-md group hover:bg-pink-500 border"
-                              onClick={(e) =>
-                                setTicketQuantities(() => ticketQuantities.map((item, i) => {
-                                  if (i == 0) {
-                                    return item + 50;
-                                  }
-
-                                  return item;
-                                }))
-                              }
+                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-[#FF6F61] rounded-full shadow-md group hover:bg-pink-500 border"
+                              onClick={(e) => {
+                                // Update ticket quantities
+                                setTicketQuantities(ticketQuantities.map((item, i) => (i === 0 ? item + 50 : item)));
+                                
+                                // Set isBuy to true
+                                setIsBuy(true);
+                              }}
                             >
                               <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
                                 <svg
@@ -636,16 +629,14 @@ export default function Main() {
                             </Button>
 
                             <Button
-                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-900 rounded-full shadow-md group hover:bg-pink-500 border"
-                              onClick={() =>
-                                setTicketQuantities(() => ticketQuantities.map((item, i) => {
-                                  if (i == 0) {
-                                    return item + 100;
-                                  }
-
-                                  return item;
-                                }))
-                              }
+                              className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-[#FF6F61] rounded-full shadow-md group hover:bg-pink-500 border"
+                              onClick={(e) => {
+                                // Update ticket quantities
+                                setTicketQuantities(ticketQuantities.map((item, i) => (i === 0 ? item + 100 : item)));
+                                
+                                // Set isBuy to true
+                                setIsBuy(true);
+                              }}
                             >
                               <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
                                 <svg
@@ -681,7 +672,7 @@ export default function Main() {
                             className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-black transition duration-300 ease-out bg-slate-300 rounded-full shadow-lg group hover:bg-pink-500 border" disabled={true}
                           >
                             Connect Wallet
-                          </Button>:Object.keys(liveRaffles[0].account.status).toString() == "active" ? <Button onClick={() => handleBuyTickets(ticketQuantities[0], liveRaffles[0].account.raffleId)} className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-900 rounded-full shadow-lg group hover:bg-pink-500 border">
+                          </Button>:Object.keys(liveRaffles[0].account.status).toString() == "active" ? <Button onClick={() => handleBuyTickets(ticketQuantities[0], liveRaffles[0].account.raffleId)} className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-[#FF6F61] rounded-full shadow-lg group hover:bg-pink-500 border">
                             <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
                               <svg
                                 className="w-6 h-6"
@@ -709,7 +700,7 @@ export default function Main() {
                           </Button>}
                           <Button
                             onClick={() => handleOpenModal(liveRaffles[0])}
-                            className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-900 rounded-full shadow-lg group hover:bg-pink-500 border"
+                            className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-[#FF6F61] rounded-full shadow-lg group hover:bg-pink-500 border"
                           >
                             Show Details
                           </Button>
@@ -739,7 +730,7 @@ export default function Main() {
                             }
                             return (
                               <>
-                                <Card key={liveRaffle.account.raffleId} className={`bg-gradient-to-r ${styleType} text-white shadow-lg hover:shadow-2xl transition-all duration-300`}>
+                                <Card key={liveRaffle.account.raffleId} className={`bg-gradient-to-r from-teal-500 to-purple-500 text-white shadow-lg hover:shadow-2xl transition-all duration-300`}>
                                   <CardHeader>
                                     <CardTitle></CardTitle>
                                   </CardHeader>
@@ -768,15 +759,18 @@ export default function Main() {
                                         <Input
                                           className="w-full text-green-500"
                                           value={ticketQuantities[i + 1]}
-                                          onChange={(e) =>
-                                            setTicketQuantities(() => ticketQuantities.map((item, index) => {
-                                              if (i + 1 == index) {
-                                                return parseInt(e.target.value)
+                                          onChange={(e) => {
+                                            // Update ticket quantities based on the input change
+                                            setTicketQuantities(ticketQuantities.map((item, index) => {
+                                              if (i + 1 === index) {
+                                                return parseInt(e.target.value);
                                               }
-                  
                                               return item;
-                                            }))
-                                          }
+                                            }));
+                                          
+                                            // Set isBuy to true
+                                            setIsBuy(true);
+                                          }}
                                           id="ticket-quantity"
                                           max="69"
                                           min="1"
@@ -792,7 +786,7 @@ export default function Main() {
                                       >
                                         Connect Wallet
                                       </Button>:Object.keys(liveRaffle.account.status).toString() == "active" ? <Button onClick={() => handleBuyTickets(ticketQuantities[i + 1], liveRaffle.account.raffleId)}
-                                        className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-900 rounded-full shadow-lg group hover:bg-pink-500 border"
+                                        className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-[#FF6F61] rounded-full shadow-lg group hover:bg-pink-500 border"
                                       >
                                         <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-pink-500 group-hover:translate-x-0 ease">
                                           <svg
@@ -823,7 +817,7 @@ export default function Main() {
                                       </Button>}
                                       <Button
                                         onClick={() => handleOpenModal(liveRaffle)}
-                                        className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-green-900 rounded-full shadow-lg group hover:bg-pink-500 border"
+                                        className="relative inline-flex items-center justify-center w-full px-6 py-3 mt-8 overflow-hidden font-semibold text-white transition duration-300 ease-out bg-[#FF6F61] rounded-full shadow-lg group hover:bg-pink-500 border"
                                       >
                                         Show Details
                                       </Button>
@@ -872,7 +866,7 @@ export default function Main() {
                 
                 return (
                   <>
-                    <Card key={completedPool.account.raffleId}  className={`bg-gradient-to-r ${styleType} text-white shadow-lg hover:shadow-2xl transition-all duration-300`}>
+                    <Card key={completedPool.account.raffleId}  className={`bg-gradient-to-r from-teal-500 to-purple-500 text-white shadow-lg hover:shadow-2xl transition-all duration-300`}>
                       <CardHeader>
                         <CardTitle>Raffle ({`${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`})</CardTitle>
                       </CardHeader>
