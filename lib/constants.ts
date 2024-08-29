@@ -1,7 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
 import { BN } from "@project-serum/anchor";
 
-const PROGRAM_ID = "pf1dE1JF4VE8bZB7TN6hRjNVtHRERCy7vcBZkQnHoaW"; // mine
+const PROGRAM_ID = "3UG9FRgriVP961HCegsXbJqRyVzeJw3HuEAYrp28DVgY"; // mine
 
 const GLOBAL_STATE_SEED = "global_state";
 const POOL_SEED = "pool"; // mine
@@ -11,12 +11,11 @@ const POOL_VAULT_SEED = "pool_vault_seed";
 const BUYERS_INFO_SEED = "buyers_seed";
 const USER_INFO_SEED = "user_info_seed";
 
-const PAYTOKEN_MINT = new PublicKey("73aEXSFEAo81vGHTrZibg9D7gav5npYthtqPbFn6hswT");
+const PAYTOKEN_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
-const ADMIN_ADDRESS = new PublicKey("EMtEX2HYFzDL6kyQfTvoDh8vjBnmt1GgbmjScrCKMsjj");
+const ADMIN_ADDRESS = new PublicKey("ELDbg5iQBZUasVMiBo3yrZdAkvY7bRWmt3BBNKpTtQkQ");
 
-// const RPC_ENDPOINT = "https://rpc-devnet.hellomoon.io/96345231-596e-4f27-9fea-1ef5e33ca64c";
-const RPC_ENDPOINT = "https://rpc-devnet.hellomoon.io/9b116588-7790-4286-9bbb-77d326750f2f";
+const RPC_ENDPOINT = "https://hidden-patient-slug.solana-mainnet.quiknode.pro/d8cb6d9a7b156d44efaca020f46f9196d20bc926";
 
 const DECIMALS = 6; // for BPT for test, 6 for USDC for mainnet // new BN(1000_000_000);
 

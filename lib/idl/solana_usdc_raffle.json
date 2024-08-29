@@ -256,62 +256,6 @@
       ]
     },
     {
-      "name": "completeRaffle",
-      "accounts": [
-        {
-          "name": "pool",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "payTokenMint",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "admin",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "winner",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "winnerAta",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "adminAta",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "treasuryAta",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "tokenProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "associatedTokenProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": []
-    },
-    {
       "name": "setWinner",
       "accounts": [
         {
@@ -863,7 +807,7 @@
       "msg": "The auto generate value is not correct!"
     }
   ],
-  "metadata": {
-    "address": "pf1dE1JF4VE8bZB7TN6hRjNVtHRERCy7vcBZkQnHoaW"
+  "metadata":{
+    "address":"3UG9FRgriVP961HCegsXbJqRyVzeJw3HuEAYrp28DVgY"
   }
 }
