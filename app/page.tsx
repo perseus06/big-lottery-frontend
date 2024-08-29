@@ -452,16 +452,13 @@ export default function Main() {
         <div className="mt-12 w-full max-w-screen-lg px-4">
           <div className="bg-gradient-to-r from-teal-500 to-purple-500 text-white p-8 rounded-lg shadow-xl text-center mb-6 border">
             <h2 className="text-3xl font-bold mb-6">
-              🎉 Welcome to the World's Biggest Raffle! 🎉
+                🎉 Join the Ultimate Raffle Experience: Bigger Prizes, Bigger Wins! 🎉
             </h2>
             <p className="text-lg">
-              This is the world's Biggest Raffle! Every time a smaller raffle is completed, a larger raffle is created.
-              Eventually, we aim to be the World's Largest Raffle Raffle.
+                Enter our raffles for just $1 USDC on Solana. The main raffle's prize pool grows by 1.75x every time a winner is randomly selected, making each round more exciting than the last.
             </p>
             <p className="text-lg">
-              Don't miss your chance to win big! Buy your tickets now
-              and join the excitement. Every ticket purchased brings you
-              closer to the enormous prize pool.
+                Meanwhile, other raffles offer consistent prizes every time they complete. Don't miss out on your chance to win—buy your tickets now and watch as the main raffle's prize pool soars with each round!
             </p>
           </div>
         </div>

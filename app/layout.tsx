@@ -6,8 +6,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Biggest.raffle",
-  description: "World's Largest Raffle - Solana USDC",
+  title: "RaffleBags",
+  description: "Join the Ultimate Raffle: Bigger Prizes with Every Win - $1 USDC on Solana",
 };
 
 export default function RootLayout({
