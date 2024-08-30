@@ -98,6 +98,7 @@ export default function Main() {
   const [myTitckets, setMyTickets] = useState<any[]>([]);
   const [winnerInfo, setWinnerInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [firstLoad, setFirstLoading] = useState(true);
   const [totalRaffles, setTotalRaffles] = useState<number>(0);
   const [biggestLottery, setBiggestLottery] = useState<number>(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -106,6 +107,11 @@ export default function Main() {
   const [selectedRaffle, setSelectedRaffle] = useState(null); // State to track which raffle's modal is open
   const [isWinner, setIsWinner] = useState(false);
   const [winnerAddress, setWinnerAddress] = useState<String>("");
+  // pagination for completedPools
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+
+  const itemsPerPage = 3; // Adjust the number of items per page as needed
 
   const searchParams = useSearchParams()
   let referral = searchParams.get('ref');
@@ -122,7 +128,6 @@ export default function Main() {
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
-   
 
     const fetchData = async () => {
       if (!isBuy) {
@@ -166,9 +171,9 @@ export default function Main() {
             ["active", "processing"].includes(Object.keys(item.account.status).toString())
           );
           
-          setCompletedPool(
-            allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() === "completed")
-          );
+          const tempCompletedPools = allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() === "completed");
+
+          setCompletedPool(tempCompletedPools);
   
           setTicketQuantities(
             new Array(
@@ -186,6 +191,9 @@ export default function Main() {
   
           // Move the biggest raffle to the beginning of the array
           setLiveRaffles([activeRaffles[0], ...activeRaffles.slice(1)]);
+
+          setTotalPages(Math.ceil(tempCompletedPools.length / itemsPerPage));
+          setFirstLoading(false);
         } catch (error) {
           console.log("Error while fetching pool data:", error);
         } finally {
@@ -193,10 +201,8 @@ export default function Main() {
         }
       }
     };
-  
     // Initial fetch
     fetchData();
-  
     // Set interval for fetching data every 1 or 2 minutes
     intervalId = setInterval(fetchData, 30 * 1000); // 2 minutes (120,000 ms)
     // Clear the interval when the component is unmounted
@@ -463,7 +469,7 @@ export default function Main() {
           </div>
         </div>
         {
-          loading ?
+          (loading && firstLoad) ?
             <div className="flex justify-center items-center">
               <h2 className="text-xl font-bold mb-4">Loading...</h2>
             </div> :
@@ -844,7 +850,7 @@ export default function Main() {
           <div className="mt-12 w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 text-white">
           {
             completedPools.length > 0 ?
-            completedPools.map((completedPool, i) => {
+            completedPools.slice((currentPage - 1) * itemsPerPage, (currentPage - 1) * itemsPerPage + itemsPerPage).map((completedPool, i) => {
                 let styleType;
 
                 if (i % 3 == 0) {
@@ -903,6 +909,25 @@ export default function Main() {
               </>  
           }  
           </div>
+          {completedPools.length > 0 && <div className="flex justify-center items-center mt-4">
+            <button
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="bg-blue-500 text-white px-4 py-2 rounded-l"
+            >
+              Previous
+            </button>
+            <span className="px-4">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="bg-blue-500 text-white px-4 py-2 rounded-r"
+            >
+              Next
+            </button>
+          </div>}
         </div>
         <style jsx>{`
           @keyframes pulsate {
