@@ -286,7 +286,7 @@ export default function Page() {
       const reserved = Number(0.2);
       const autoGenerate = autoRecreate ? Number(1) : Number(0);
       const lotteryMultiplier = multiplier;
-      const accountFee = 100000000;
+      const accountFee = 10000000;
 
       const [poolNativeAccount, _poolNativeAccountbump] = await PublicKey.findProgramAddress(
         [
