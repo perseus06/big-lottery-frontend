@@ -337,7 +337,7 @@ export default function Main() {
 
         
         // Call the buy_tickets function
-        const buyTx = program.instruction.buyTickets(
+        const buyTx = await program.rpc.buyTickets(
           [...poolData.newRandomAddress.toBuffer()],
           raffleId,
           buyerIndex,
@@ -366,22 +366,24 @@ export default function Main() {
             },
           }
         );
-        console.log(referral==null ? program.programId : referralAta.toString());
-        transaction.add(buyTx);
-        // Set the fee payer to the sender's public key
-        transaction.feePayer = wallet.publicKey;;
-        // Get the recent blockhash
-        const recentBlockhash = (await connection.getRecentBlockhash()).blockhash;
-        // Sign the transaction
-        transaction.recentBlockhash = recentBlockhash;
-        // transaction.partialSign(mint);
-        const signedTransaction = await wallet.signTransaction(transaction);
-        console.log("signedTransaction->", signedTransaction);
+        // console.log(referral==null ? program.programId : referralAta.toString());
+        // transaction.add(buyTx);
+        // // Set the fee payer to the sender's public key
+        // transaction.feePayer = wallet.publicKey;;
+        // // Get the recent blockhash
+        // const recentBlockhash = (await connection.getRecentBlockhash()).blockhash;
+        // // Sign the transaction
+        // transaction.recentBlockhash = recentBlockhash;
+        // // transaction.partialSign(mint);
+        // const signedTransaction = await wallet.signTransaction(transaction);
+        // console.log("signedTransaction->", signedTransaction);
 
-        // Send the signed transaction
-        const tx = await connection.sendRawTransaction(signedTransaction.serialize());
-        console.log("tx->", tx);
+        // // Send the signed transaction
+        // const tx = await connection.sendRawTransaction(signedTransaction.serialize());
+
+        await delay(5000);
         const allPoolAccount = await program.account.pool.all();
+        console.log("allPoolAccount->", allPoolAccount);
 
         setPools(allPoolAccount);
         let activeRaffles = allPoolAccount.filter(
@@ -423,7 +425,7 @@ export default function Main() {
       setIsBuy(false);
     }
   };
-
+  const delay = (milliseconds: number) => new Promise(resolve => setTimeout(resolve, milliseconds))
   return (
     <div
       key="1"
