@@ -335,7 +335,7 @@ export default function Main() {
         const totalPrice = totalTicket * 10 ** DECIMALS;
         const accountFeeSol = Number(poolData.accountFee) * totalTicket / Number(poolData.totalTicket);
 
-        console.log("accountFeeSol->", accountFeeSol);
+        
         // Call the buy_tickets function
         const buyTx = program.instruction.buyTickets(
           [...poolData.newRandomAddress.toBuffer()],
@@ -367,7 +367,6 @@ export default function Main() {
           }
         );
         console.log(referral==null ? program.programId : referralAta.toString());
-  
         transaction.add(buyTx);
         // Set the fee payer to the sender's public key
         transaction.feePayer = wallet.publicKey;;
@@ -382,9 +381,6 @@ export default function Main() {
         // Send the signed transaction
         const tx = await connection.sendRawTransaction(signedTransaction.serialize());
         console.log("tx->", tx);
-
-      
-
         const allPoolAccount = await program.account.pool.all();
 
         setPools(allPoolAccount);

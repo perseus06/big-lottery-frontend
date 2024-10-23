@@ -1,7 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
 import { BN } from "@project-serum/anchor";
 
-const PROGRAM_ID = "DmwJ9rj7EQqwNxaWkn1h8ukdrfMwFWBWCPPUwxpVy7VK"; // mine
+const PROGRAM_ID = "53KX2Hgg85aNNaXBEZBtAhyf3VGEkiuMyYF2HatWzXpH"; // mine
 
 const GLOBAL_STATE_SEED = "global_state";
 const POOL_SEED = "pool"; // mine
@@ -13,9 +13,11 @@ const USER_INFO_SEED = "user_info_seed";
 
 const PAYTOKEN_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
 
-const ADMIN_ADDRESS = new PublicKey("ELDbg5iQBZUasVMiBo3yrZdAkvY7bRWmt3BBNKpTtQkQ");
+// const ADMIN_ADDRESS = new PublicKey("ELDbg5iQBZUasVMiBo3yrZdAkvY7bRWmt3BBNKpTtQkQ");
+const ADMIN_ADDRESS = new PublicKey("J6fxz41JmWbaJZbAi2pa1cm5SHxbKKRVTeiXoUcrxxxR");
 
-const RPC_ENDPOINT = "https://hidden-patient-slug.solana-mainnet.quiknode.pro/d8cb6d9a7b156d44efaca020f46f9196d20bc926";
+// const RPC_ENDPOINT = "https://mainnet.helius-rpc.com/?api-key=ae072be7-3faf-426c-a8c0-b06de1cfe222";
+const RPC_ENDPOINT = "https://billowing-palpable-sun.solana-mainnet.quiknode.pro/dcb07b108ec63c565d92b65b25d61508ff58eb05";
 
 const DECIMALS = 6; // for BPT for test, 6 for USDC for mainnet // new BN(1000_000_000);
 
