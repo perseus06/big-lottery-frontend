@@ -265,7 +265,6 @@ export default function Main() {
           program.programId
         );
 
-        console.log("userInfo->", userInfo.toString());
 
         const buyerAta = getAssociatedTokenAddressSync(
           PAYTOKEN_MINT,
@@ -286,7 +285,6 @@ export default function Main() {
         let referralAta = null;
 
         let transaction = new Transaction();
-        console.log("referral", referral);
         if(referral === null) {
           referralAta = getAssociatedTokenAddressSync(
             PAYTOKEN_MINT,
@@ -297,7 +295,6 @@ export default function Main() {
             PAYTOKEN_MINT,
             new PublicKey(referral)
           );
-          console.log("referralAta->", referralAta.toString());
 
           // Check if the associated token account exists
           const referralAtaInfo = await provider.connection.getAccountInfo(referralAta);
@@ -337,7 +334,7 @@ export default function Main() {
 
         
         // Call the buy_tickets function
-        const buyTx = await program.rpc.buyTickets(
+        const buyTx = program.instruction.buyTickets(
           [...poolData.newRandomAddress.toBuffer()],
           raffleId,
           buyerIndex,
@@ -366,24 +363,21 @@ export default function Main() {
             },
           }
         );
-        // console.log(referral==null ? program.programId : referralAta.toString());
-        // transaction.add(buyTx);
-        // // Set the fee payer to the sender's public key
-        // transaction.feePayer = wallet.publicKey;;
-        // // Get the recent blockhash
-        // const recentBlockhash = (await connection.getRecentBlockhash()).blockhash;
-        // // Sign the transaction
-        // transaction.recentBlockhash = recentBlockhash;
-        // // transaction.partialSign(mint);
-        // const signedTransaction = await wallet.signTransaction(transaction);
-        // console.log("signedTransaction->", signedTransaction);
+        transaction.add(buyTx);
+        // Set the fee payer to the sender's public key
+        transaction.feePayer = wallet.publicKey;;
+        // Get the recent blockhash
+        const recentBlockhash = (await connection.getRecentBlockhash()).blockhash;
+        // Sign the transaction
+        transaction.recentBlockhash = recentBlockhash;
+        // transaction.partialSign(mint);
+        const signedTransaction = await wallet.signTransaction(transaction);
 
-        // // Send the signed transaction
-        // const tx = await connection.sendRawTransaction(signedTransaction.serialize());
+        // Send the signed transaction
+        const tx = await connection.sendRawTransaction(signedTransaction.serialize());
 
         await delay(5000);
         const allPoolAccount = await program.account.pool.all();
-        console.log("allPoolAccount->", allPoolAccount);
 
         setPools(allPoolAccount);
         let activeRaffles = allPoolAccount.filter(
@@ -410,7 +404,6 @@ export default function Main() {
         // await handleMyTickets();
         setIsBuyTicket(true);
         const userInfoData = await program.account.userInfo.fetch(userInfo);
-        console.log("user information after buy tickets ->",userInfoData);
         toast.success("You bought tickets successfully!");
       }
     } catch (error:any) {
