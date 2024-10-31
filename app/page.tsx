@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { Button, CustomWalletButton } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -83,13 +83,14 @@ import WinnerAddressModal from "./components/winnerAddressModal";
 import { useSearchParams } from 'next/navigation'
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
 const opts = {
   preflightCommitment:"processed",
 };
 export default function Main() {
   const connection = new Connection(RPC_ENDPOINT, 'confirmed');
 
-  const { publicKey,wallet, connected, sendTransaction } = useWallet();
+  const { publicKey,wallet, connected, sendTransaction, signTransaction, signAllTransactions } = useWallet();
   const [isConnected, setIsConnected] = useState(false);
   const [ticketQuantity, setTicketQuantity] = useState<number>(0);
   const [program, setProgram] = useState<Program>();
@@ -125,15 +126,26 @@ export default function Main() {
 
  
   const getProvider = () => {
-    if(!wallet || !wallet?.adapter) return null;
+    if (!wallet || !publicKey || !signTransaction || !signAllTransactions) {
+      return;
+    }
+    const signerWallet = {
+      publicKey: publicKey,
+      signTransaction: signTransaction,
+      signAllTransactions: signAllTransactions,
+    };
 
     const provider = new AnchorProvider(
       connection,
-      wallet?.adapter,
-      opts.preflightCommitment
+      signerWallet,
+      {
+        preflightCommitment:"processed",
+      }
     );
+  
     return provider;
   };
+  
 
   useEffect(() => {
     setIsConnected(connected);
@@ -230,6 +242,8 @@ export default function Main() {
         let provider;
 
         provider = getProvider();
+        if(!provider) return;
+        if(!signTransaction) return;
 
         const program = new Program(IDL as Idl, PROGRAM_ID, provider);
         const [pool, _] = await PublicKey.findProgramAddress(
@@ -300,7 +314,7 @@ export default function Main() {
           if (!referralAtaInfo) {
             transaction.add(
               createAssociatedTokenAccountInstruction(
-                  wallet.publicKey,
+                  publicKey,
                   referralAta,
                   new PublicKey(referral),
                   PAYTOKEN_MINT,
@@ -369,7 +383,7 @@ export default function Main() {
         // Sign the transaction
         transaction.recentBlockhash = recentBlockhash;
         // transaction.partialSign(mint);
-        const signedTransaction = await wallet.adapter.signTransaction(transaction);
+        const signedTransaction = await signTransaction(transaction);
 
         // Send the signed transaction
         const tx = await connection.sendRawTransaction(signedTransaction.serialize());
