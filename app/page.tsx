@@ -225,7 +225,9 @@ export default function Main() {
     // Clear the interval when the component is unmounted
     // return () => clearInterval(intervalId);
   
-  }, [wallet, isBuy]);
+  // }, [wallet, isBuy]);
+}, []);
+
  
 
 
