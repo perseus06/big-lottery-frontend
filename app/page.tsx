@@ -157,8 +157,10 @@ export default function Main() {
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
+    console.log(wallet, isBuy);
 
     const fetchData = async () => {
+      console.log(isBuy);
       if (!isBuy) {
         try {
           setLoading(true);
@@ -187,7 +189,7 @@ export default function Main() {
           );
           
           const tempCompletedPools = allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() === "completed");
-
+          console.log(tempCompletedPools);
           setCompletedPool(tempCompletedPools);
   
           setTicketQuantities(
@@ -219,9 +221,9 @@ export default function Main() {
     // Initial fetch
     fetchData();
     // Set interval for fetching data every 1 or 2 minutes
-    intervalId = setInterval(fetchData, 30 * 1000); // 2 minutes (120,000 ms)
+    // intervalId = setInterval(fetchData, 30 * 1000); // 2 minutes (120,000 ms)
     // Clear the interval when the component is unmounted
-    return () => clearInterval(intervalId);
+    // return () => clearInterval(intervalId);
   
   }, [wallet, isBuy]);
  
