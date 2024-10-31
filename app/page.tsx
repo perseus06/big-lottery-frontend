@@ -125,15 +125,15 @@ export default function Main() {
   }
   const twallet = useAnchorWallet();
  
-  const getProvider = () => {
+  const getUserProvider = () => {
     if (!wallet || !publicKey || !signTransaction || !signAllTransactions) {
-      // if(twallet) return new AnchorProvider(connection, twallet, {});
-      if(twallet) {
-        console.log("twallet->", new AnchorProvider(connection, twallet, {}));
-        return new AnchorProvider(connection, twallet, {});
-      }
-      console.log("null");
-      return;
+      const keypair = Keypair.generate();
+      let provider = new AnchorProvider(connection, {
+        publicKey: keypair.publicKey,
+        signAllTransactions: (txs) => Promise.resolve(txs),
+        signTransaction: (tx) => Promise.resolve(tx),
+      }, {});
+      return provider;
     }
 
     const signerWallet = {
@@ -164,15 +164,13 @@ export default function Main() {
     console.log(wallet, isBuy);
 
     const fetchData = async () => {
-      console.log(isBuy);
       if (!isBuy) {
         try {
           setLoading(true);
   
-          let provider = getProvider();
+          let provider = getUserProvider();
 
           if(!provider) return;
-      console.log("provider->", provider);
           
           const program = new Program(IDL as Idl, PROGRAM_ID, provider);
           setProgram(program);
@@ -229,12 +227,12 @@ export default function Main() {
     // Initial fetch
     fetchData();
     // Set interval for fetching data every 1 or 2 minutes
-    // intervalId = setInterval(fetchData, 30 * 1000); // 2 minutes (120,000 ms)
+    intervalId = setInterval(fetchData, 30 * 1000); // 2 minutes (120,000 ms)
     // Clear the interval when the component is unmounted
-    // return () => clearInterval(intervalId);
+    return () => clearInterval(intervalId);
   
-  // }, [wallet, isBuy]);
-}, []);
+  }, [wallet, isBuy]);
+// }, []);
 
  
 
@@ -256,7 +254,7 @@ export default function Main() {
         setIsBuy(true);
         let provider;
 
-        provider = getProvider();
+        provider = getUserProvider();
         if(!provider) return;
         if(!signTransaction) return;
 
