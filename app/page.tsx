@@ -128,8 +128,11 @@ export default function Main() {
   const getProvider = () => {
     if (!wallet || !publicKey || !signTransaction || !signAllTransactions) {
       // if(twallet) return new AnchorProvider(connection, twallet, {});
-      console.log("twallet->", new AnchorProvider(connection, twallet, {}));
-      if(twallet) return new AnchorProvider(connection, twallet, {});
+      if(twallet) {
+        console.log("twallet->", new AnchorProvider(connection, twallet, {}));
+        return new AnchorProvider(connection, twallet, {});
+      }
+      console.log("null");
       return;
     }
 
