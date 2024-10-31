@@ -123,12 +123,15 @@ export default function Main() {
   } else {
     referral = localStorage.getItem('referral');
   }
-
+  const twallet = useAnchorWallet();
  
   const getProvider = () => {
     if (!wallet || !publicKey || !signTransaction || !signAllTransactions) {
+      // if(twallet) return new AnchorProvider(connection, twallet, {});
+      if(twallet) return new AnchorProvider(connection, twallet, {});
       return;
     }
+
     const signerWallet = {
       publicKey: publicKey,
       signTransaction: signTransaction,
