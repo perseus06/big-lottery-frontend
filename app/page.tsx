@@ -232,8 +232,6 @@ export default function Main() {
 // }, []);
 
  
-
-
   const handleOpenModal = (raffle: any) => {
     setSelectedRaffle(raffle);
     setIsOpen(true); // Open the modal
@@ -397,7 +395,6 @@ export default function Main() {
 
         // Send the signed transaction
         const tx = await connection.sendRawTransaction(signedTransaction.serialize());
-        await delay(5000);
         const allPoolAccount = await program.account.pool.all();
 
         setPools(allPoolAccount);
@@ -425,6 +422,7 @@ export default function Main() {
         // await handleMyTickets();
         setIsBuyTicket(true);
         const userInfoData = await program.account.userInfo.fetch(userInfo);
+        console.log("userInfoData->", userInfoData);
         toast.success("You bought tickets successfully!");
       }
     } catch (error:any) {
