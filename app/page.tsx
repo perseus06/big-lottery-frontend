@@ -183,16 +183,13 @@ export default function Main() {
           const globalStateData = await program.account.globalState.fetch(globalState);
           const totalRaffles = Number(globalStateData.totalRaffles);
           setTotalRaffles(totalRaffles);
-          console.log("totalRaffles->", totalRaffles);
   
           const allPoolAccount = await program.account.pool.all();
           setPools(allPoolAccount);
-          console.log("allPoolAccount->", allPoolAccount);
   
           let activeRaffles = allPoolAccount.filter((item: any) =>
             ["active", "processing"].includes(Object.keys(item.account.status).toString())
           );
-          console.log("activeRaffles->", activeRaffles);
           
           const tempCompletedPools = allPoolAccount.filter((item: any) => Object.keys(item.account.status).toString() === "completed");
           console.log(tempCompletedPools);
