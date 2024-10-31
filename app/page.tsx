@@ -32,6 +32,7 @@ import {
   Transaction,
   sendAndConfirmTransaction,
   LAMPORTS_PER_SOL,
+  Connection,
 } from "@solana/web3.js";
 import {
   TOKEN_PROGRAM_ID,
@@ -49,7 +50,7 @@ import {
   Program,
   AnchorProvider,
   setProvider,
-  getProvider,
+  // getProvider,
   Idl,
   utils,
   BN,
@@ -82,12 +83,13 @@ import WinnerAddressModal from "./components/winnerAddressModal";
 import { useSearchParams } from 'next/navigation'
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
+const opts = {
+  preflightCommitment:"processed",
+};
 export default function Main() {
-  const { connection } = useConnection();
-  let wallet = useAnchorWallet();
+  const connection = new Connection(RPC_ENDPOINT, 'confirmed');
 
-  const { publicKey, connected, sendTransaction } = useWallet();
+  const { publicKey,wallet, connected, sendTransaction } = useWallet();
   const [isConnected, setIsConnected] = useState(false);
   const [ticketQuantity, setTicketQuantity] = useState<number>(0);
   const [program, setProgram] = useState<Program>();
@@ -121,6 +123,18 @@ export default function Main() {
     referral = localStorage.getItem('referral');
   }
 
+ 
+  const getProvider = () => {
+    if(!wallet || !wallet?.adapter) return null;
+
+    const provider = new AnchorProvider(
+      connection,
+      wallet?.adapter,
+      opts.preflightCommitment
+    );
+    return provider;
+  };
+
   useEffect(() => {
     setIsConnected(connected);
   }, [connected]);
@@ -134,25 +148,11 @@ export default function Main() {
         try {
           setLoading(true);
   
-          let provider: Provider;
-          try {
-            provider = getProvider();
-          } catch {
-            if(wallet != undefined) {
-              provider = new AnchorProvider(connection, wallet, {});
-              setProvider(provider);
-            } else {
-              const keypair = Keypair.generate();
-              provider = new AnchorProvider(connection, {
-                publicKey: keypair.publicKey,
-                signAllTransactions: (txs) => Promise.resolve(txs),
-                signTransaction: (tx) => Promise.resolve(tx),
-              }, {});
-              setProvider(provider);
-            }
-          }
-  
-          const program = new Program(IDL as Idl, PROGRAM_ID);
+          let provider = getProvider();
+
+          if(!provider) return;
+          
+          const program = new Program(IDL as Idl, PROGRAM_ID, provider);
           setProgram(program);
   
           const [globalState, globalStateBump] = await PublicKey.findProgramAddress(
@@ -210,6 +210,8 @@ export default function Main() {
   
   }, [wallet, isBuy]);
  
+
+
   const handleOpenModal = (raffle: any) => {
     setSelectedRaffle(raffle);
     setIsOpen(true); // Open the modal
@@ -223,16 +225,13 @@ export default function Main() {
   const handleBuyTickets = async (totalTicket: number, raffleId: number) => {
     try {
       if (wallet) {
+        if(!publicKey) return;
         setIsBuy(true);
-        let provider: Provider;
-        try {
-          provider = getProvider();
-        } catch {
-          provider = new AnchorProvider(connection, wallet, {});
-          setProvider(provider);
-        }
+        let provider;
 
-        const program = new Program(IDL as Idl, PROGRAM_ID);
+        provider = getProvider();
+
+        const program = new Program(IDL as Idl, PROGRAM_ID, provider);
         const [pool, _] = await PublicKey.findProgramAddress(
           [
             Buffer.from(POOL_SEED),
@@ -268,7 +267,7 @@ export default function Main() {
 
         const buyerAta = getAssociatedTokenAddressSync(
           PAYTOKEN_MINT,
-          wallet?.publicKey,
+          publicKey,
         );
 
         const buyerAtaInfo = await provider.connection.getAccountInfo(buyerAta);
@@ -332,7 +331,6 @@ export default function Main() {
         const totalPrice = totalTicket * 10 ** DECIMALS;
         const accountFeeSol = Number(poolData.accountFee) * totalTicket / Number(poolData.totalTicket);
 
-        
         // Call the buy_tickets function
         const buyTx = program.instruction.buyTickets(
           [...poolData.newRandomAddress.toBuffer()],
@@ -346,7 +344,7 @@ export default function Main() {
               pool,
               poolNativeAccount,
               payTokenMint:PAYTOKEN_MINT,
-              buyer: wallet.publicKey,
+              buyer: publicKey,
               userInfo,
               referral: referral!==null ? new PublicKey(referral) : program.programId,
               buyerAta,
@@ -365,17 +363,16 @@ export default function Main() {
         );
         transaction.add(buyTx);
         // Set the fee payer to the sender's public key
-        transaction.feePayer = wallet.publicKey;;
+        transaction.feePayer = publicKey;
         // Get the recent blockhash
         const recentBlockhash = (await connection.getRecentBlockhash()).blockhash;
         // Sign the transaction
         transaction.recentBlockhash = recentBlockhash;
         // transaction.partialSign(mint);
-        const signedTransaction = await wallet.signTransaction(transaction);
+        const signedTransaction = await wallet.adapter.signTransaction(transaction);
 
         // Send the signed transaction
         const tx = await connection.sendRawTransaction(signedTransaction.serialize());
-
         await delay(5000);
         const allPoolAccount = await program.account.pool.all();
 
@@ -407,7 +404,6 @@ export default function Main() {
         toast.success("You bought tickets successfully!");
       }
     } catch (error:any) {
-      console.log("error->", error);
       if(error.message.includes("ReferralError")) {
         toast.error("Referal should not be buyer!");
       } else if(error.message.includes("User rejected the request")) {
