@@ -16,7 +16,7 @@ const PAYTOKEN_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1
 // const ADMIN_ADDRESS = new PublicKey("ELDbg5iQBZUasVMiBo3yrZdAkvY7bRWmt3BBNKpTtQkQ");
 const ADMIN_ADDRESS = new PublicKey("J6fxz41JmWbaJZbAi2pa1cm5SHxbKKRVTeiXoUcrxxxR");
 
-const RPC_ENDPOINT = "https://billowing-palpable-sun.solana-mainnet.quiknode.pro/dcb07b108ec63c565d92b65b25d61508ff58eb05";
+const RPC_ENDPOINT = "https://mainnet.helius-rpc.com/?api-key=e43221a9-0087-447d-a913-bd271571cb81";
 
 const DECIMALS = 6; // for BPT for test, 6 for USDC for mainnet // new BN(1000_000_000);
 
